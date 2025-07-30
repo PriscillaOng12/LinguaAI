@@ -9,7 +9,7 @@
 **[Technical Architecture](docs/TECHNICAL_ARCHITECTURE.md)** | **[Report Bug](.github/ISSUE_TEMPLATE/bug_report.md)** | **[Product Strategy](docs/PRODUCT_STRATEGY.md)**
 
 
-[![Watch the demo](https://github.com/user-attachments/assets/8136cf6c-ef1f-4ddd-bbad-659cef546882)]
+https://github.com/user-attachments/assets/8136cf6c-ef1f-4ddd-bbad-659cef546882
 
 ---
 
