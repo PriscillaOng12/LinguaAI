@@ -75,11 +75,11 @@ graph TB
     R --> F
     R --> G
     
-    classDef frontend fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
-    classDef api fill:#fff3e0,stroke:#f57c00,stroke-width:2px
-    classDef ai fill:#e8f5e8,stroke:#388e3c,stroke-width:2px
-    classDef data fill:#fce4ec,stroke:#c2185b,stroke-width:2px
-    classDef external fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    classDef frontend fill:#1976d2,stroke:#0d47a1,stroke-width:2px,color:#ffffff
+    classDef api fill:#f57c00,stroke:#e65100,stroke-width:2px,color:#ffffff
+    classDef ai fill:#388e3c,stroke:#1b5e20,stroke-width:2px,color:#ffffff
+    classDef data fill:#c2185b,stroke:#880e4f,stroke-width:2px,color:#ffffff
+    classDef external fill:#7b1fa2,stroke:#4a148c,stroke-width:2px,color:#ffffff
     
     class A,B,C,D,E frontend
     class F,G,H,I api
