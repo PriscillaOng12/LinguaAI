@@ -649,7 +649,7 @@ This is my first real API, so I'm sure there are rough edges. If you:
 
 Please reach out! You can:
 - Open an issue on GitHub
-- [Email](priscilla.chuhui.ong@gmail.com) me
+- [Email](priscilla.ong.chuhui@gmail.com) me
 - Find me on Discord: @hiorhey
 
 I'm especially interested in hearing from:
