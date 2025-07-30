@@ -1,1057 +1,883 @@
 # Development Guide
 
-*Complete guide for developers to set up, contribute to, and extend LinguaAI*
+*How to set up, contribute to, and extend LinguaAI - written by someone who learned most of this while building it*
 
-## Quick Start
+## Quick Start (The "I Just Want It Working" Version)
 
 ### Prerequisites
 
-Before getting started, ensure you have the following installed:
+You'll need these installed. If you don't have them, don't worry - I'll explain where to get them:
 
-- **Node.js** (v18.0.0 or higher) - [Download here](https://nodejs.org/)
-- **npm** (v8.0.0 or higher) - comes with Node.js
+- **Node.js** (v18.0.0+) - [Download here](https://nodejs.org/). I recommend getting the LTS version.
+- **npm** (comes with Node.js) - Package manager for JavaScript
 - **Git** - [Installation guide](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
-- **VS Code** (recommended) - [Download here](https://code.visualstudio.com/)
+- **VS Code** (highly recommended) - [Download here](https://code.visualstudio.com/). You could use other editors, but the extensions I recommend are VS Code specific.
 
-### Installation
+**Optional but helpful:**
+- **Postman** or **Insomnia** for testing API endpoints
+- **Chrome DevTools** knowledge (F12 in Chrome)
 
-1. **Clone the repository**
+### The 5-Minute Setup
+
+I optimized this for people who just want to see if it works before diving deep:
+
+1. **Clone and install**
 ```bash
-git clone https://github.com/yourusername/linguaai.git
+git clone https://github.com/PriscillaOng12/LinguaAI.git
 cd linguaai
-```
-
-2. **Install dependencies**
-```bash
 npm install
 ```
 
-3. **Set up environment variables**
+If `npm install` takes forever or fails, try:
+```bash
+rm -rf node_modules package-lock.json
+npm cache clean --force
+npm install
+```
+
+2. **Environment setup**
 ```bash
 cp .env.example .env.local
 ```
 
-Edit `.env.local` with your configuration:
+Open `.env.local` in your editor and add:
 ```env
-# OpenAI Configuration
-OPENAI_API_KEY=your_openai_api_key_here
-OPENAI_MODEL=gpt-4
+# For development, you can leave this blank to use mock mode
+OPENAI_API_KEY=
 
-# Database (for production)
-DATABASE_URL=postgresql://username:password@localhost:5432/linguaai
+# Optional: Set to true to use mock AI responses (no API costs)
+MOCK_AI_SERVICE=true
 
-# Authentication (for production)
-NEXTAUTH_SECRET=your_secret_here
-NEXTAUTH_URL=http://localhost:3000
-
-# Voice Recognition (optional)
-AZURE_SPEECH_KEY=your_azure_speech_key
-AZURE_SPEECH_REGION=your_region
-
-# Development flags
+# Development mode
 NODE_ENV=development
-MOCK_AI_SERVICE=true  # Set to false to use real OpenAI
+
+# Database (only needed if you want user accounts)
+DATABASE_URL=
+
+# If you want to test voice features
+AZURE_SPEECH_KEY=
+AZURE_SPEECH_REGION=
 ```
 
-4. **Start the development server**
+3. **Start the development server**
 ```bash
 npm run dev
 ```
 
-5. **Open your browser**
-Visit [http://localhost:3000](http://localhost:3000) to see the application running.
+4. **Open your browser**
+Go to [http://localhost:3000](http://localhost:3000). You should see the app running!
 
-### First Steps
+### Quick Test Run
 
-1. **Try the demo**: Navigate to `/demo-working.html` for a fully functional standalone demo
-2. **Explore the codebase**: Start with `src/app/page.tsx` to understand the main application structure
-3. **Test voice features**: Make sure your microphone is working and try the voice conversation feature
-4. **Check the console**: Open browser dev tools to see debug information and API calls
+Before you start changing code, try these to make sure everything works:
 
-## Project Structure
+1. **Try the standalone demo**: Open `public/demo.html` in your browser - this works without any setup
+2. **Test the main app**: Click "Start Conversation" on the homepage
+3. **Try voice features**: Click the microphone button (you'll need to allow microphone access)
+4. **Check the console**: Open browser dev tools (F12) to see if there are any errors
+
+**If something breaks:** Check the browser console first, then the terminal where you ran `npm run dev`. Most issues are missing environment variables or Node.js version problems.
+
+## Project Structure (The Tourist Guide)
+
+This is how I organized everything. It made sense to me, but I'm open to suggestions:
 
 ```
 linguaai/
-├── public/                 # Static assets
-│   ├── icons/             # PWA icons and favicons
-│   └── audio/             # Audio files for UI feedback
+├── public/                 # Static files (images, icons, demo)
+│   ├── icons/             # PWA icons (for mobile install)
+│   ├── audio/             # Sound effects and samples
+│   └── demo.html          # Standalone demo (great for testing)
 ├── src/
-│   ├── app/               # Next.js 15 App Router
-│   │   ├── globals.css    # Global styles (Tailwind)
-│   │   ├── layout.tsx     # Root layout component
-│   │   └── page.tsx       # Home page
+│   ├── app/               # Next.js 15 App Router (the new way)
+│   │   ├── globals.css    # Global styles using Tailwind
+│   │   ├── layout.tsx     # Root layout (nav, footer, etc.)
+│   │   ├── page.tsx       # Homepage
+│   │   └── api/           # API routes (backend endpoints)
 │   ├── components/        # React components
-│   │   ├── MainApp.tsx    # Main application component
-│   │   ├── conversation/  # Conversation-related components
-│   │   └── dashboard/     # Dashboard and analytics
+│   │   ├── MainApp.tsx    # Main app component (most features)
+│   │   ├── conversation/  # Chat interface components
+│   │   ├── voice/         # Voice recording and playback
+│   │   └── progress/      # Progress tracking and analytics
 │   ├── lib/               # Utility libraries and services
-│   │   ├── ai/            # AI service integration
-│   │   ├── voice/         # Voice recognition handling
-│   │   ├── gamification/  # XP, achievements, leaderboards
+│   │   ├── ai/            # AI service integration and prompts
+│   │   ├── voice/         # Speech recognition and synthesis
+│   │   ├── gamification/  # XP, achievements, progress tracking
 │   │   ├── learning/      # Adaptive learning algorithms
-│   │   └── realtime/      # WebSocket and real-time features
+│   │   └── utils/         # Helper functions and utilities
 │   └── types/             # TypeScript type definitions
-├── docs/                  # Project documentation
-├── demo-working.html      # Standalone functional demo
+├── docs/                  # Project documentation (this file!)
+├── tests/                 # Test files (I should write more...)
 ├── next.config.ts         # Next.js configuration
-├── tailwind.config.js     # Tailwind CSS configuration
+├── tailwind.config.js     # Tailwind CSS setup
 ├── tsconfig.json          # TypeScript configuration
 └── package.json           # Dependencies and scripts
 ```
 
-### Key Files Overview
+### Key Files You'll Want to Know About
 
-**Core Application:**
-- `src/app/page.tsx` - Main landing page and app entry point
-- `src/components/MainApp.tsx` - Primary React component with all features
-- `demo-working.html` - Complete standalone demo (great for testing)
+**If you're just getting started:**
+- `src/app/page.tsx` - The homepage, good starting point
+- `src/components/MainApp.tsx` - Where most of the app logic lives
+- `public/demo.html` - Standalone demo, great for understanding the flow
 
-**AI & Learning:**
-- `src/lib/ai/conversation-engine.ts` - AI conversation logic and prompt management
-- `src/lib/ai/mock-ai-service.ts` - Mock AI service for development without API costs
-- `src/lib/learning/adaptive-system.ts` - Personalized learning algorithm
+**If you want to understand the AI:**
+- `src/lib/ai/conversation-engine.ts` - Main AI conversation logic
+- `src/lib/ai/mock-ai-service.ts` - Mock service for development (no API costs)
+- `src/lib/ai/prompts.ts` - All the prompt engineering I spent months on
 
-**Voice Features:**
-- `src/lib/voice/voice-handler.ts` - Web Speech API integration and audio processing
-- Voice recognition configuration and pronunciation analysis
+**If you want to work on voice features:**
+- `src/lib/voice/voice-handler.ts` - Web Speech API integration
+- `src/lib/voice/pronunciation-analyzer.ts` - Custom pronunciation scoring
 
-**Gamification:**
-- `src/lib/gamification/game-engine.ts` - XP system, achievements, and progress tracking
-- `src/lib/gamification/mock-game-data.ts` - Sample data for development
+**If you're interested in the learning system:**
+- `src/lib/learning/adaptive-system.ts` - How the app adapts to user performance
+- `src/lib/gamification/achievement-system.ts` - XP and achievements logic
 
-## Development Environment
+## Development Environment Setup
 
-### VS Code Setup
+### VS Code Configuration (Highly Recommended)
 
-Install these recommended extensions for the best development experience:
+I spent way too much time configuring this, so here's what works:
 
-```json
-{
-  "recommendations": [
-    "bradlc.vscode-tailwindcss",
-    "esbenp.prettier-vscode",
-    "ms-vscode.vscode-typescript-next",
-    "dbaeumer.vscode-eslint",
-    "ms-vscode.vscode-json"
-  ]
-}
-```
+**Extensions you should install:**
+1. **ES7+ React/Redux/React-Native snippets** - For React code snippets
+2. **Tailwind CSS IntelliSense** - Autocomplete for Tailwind classes
+3. **TypeScript Importer** - Auto-import TypeScript modules
+4. **Prettier - Code formatter** - Consistent code formatting
+5. **ESLint** - Catch errors before runtime
+6. **Auto Rename Tag** - Rename HTML/JSX tags automatically
+7. **GitLens** - Better Git integration
 
-**Workspace settings** (`.vscode/settings.json`):
+**Workspace settings** (create `.vscode/settings.json`):
 ```json
 {
   "editor.formatOnSave": true,
   "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": true
+  },
   "tailwindCSS.experimental.classRegex": [
-    ["clsx\\(([^)]*)\\)", "(?:'|\"|`)([^']*)(?:'|\"|`)"]
+    ["clsx\\(([^)]*)\\)", "(?:'|\"|`)([^']*)(?:'|\"|`)"],
+    ["cn\\(([^)]*)\\)", "(?:'|\"|`)([^']*)(?:'|\"|`)"]
   ],
-  "typescript.preferences.includePackageJsonAutoImports": "auto"
+  "typescript.preferences.includePackageJsonAutoImports": "auto",
+  "emmet.includeLanguages": {
+    "typescript": "html",
+    "typescriptreact": "html"
+  }
 }
 ```
 
-### Available Scripts
+**Code snippets** (create `.vscode/snippets.json`):
+```json
+{
+  "React Component": {
+    "prefix": "rfc",
+    "body": [
+      "interface ${1:ComponentName}Props {",
+      "  $2",
+      "}",
+      "",
+      "export default function ${1:ComponentName}({ $3 }: ${1:ComponentName}Props) {",
+      "  return (",
+      "    <div>$4</div>",
+      "  );",
+      "}"
+    ]
+  }
+}
+```
+
+### Available Scripts (What Each One Does)
 
 ```bash
 # Development
-npm run dev              # Start development server
+npm run dev              # Start dev server (hot reloading enabled)
 npm run build           # Create production build
-npm run start           # Start production server
-npm run lint            # Run ESLint
-npm run type-check      # Run TypeScript compiler check
+npm run start           # Start production server locally
+npm run lint            # Check for code style issues
+npm run lint:fix        # Fix auto-fixable linting issues
+npm run type-check      # Check TypeScript without building
 
-# Testing
+# Testing (I should do more of this...)
 npm run test            # Run all tests
-npm run test:watch      # Run tests in watch mode
+npm run test:watch      # Run tests in watch mode (re-runs on changes)
 npm run test:coverage   # Generate test coverage report
+npm run test:ui         # Run tests with UI (using Vitest UI)
 
 # Utilities
-npm run clean           # Clean build artifacts
-npm run analyze         # Analyze bundle size
+npm run clean           # Remove build artifacts and node_modules
+npm run analyze         # Analyze bundle size (helps find bloat)
+npm run db:migrate      # Run database migrations (when implemented)
+npm run db:seed         # Seed database with test data
 ```
 
-### Development Workflow
+### My Development Workflow
 
-1. **Feature Development**:
-   ```bash
-   git checkout -b feature/conversation-scenarios
-   # Make your changes
-   npm run dev  # Test locally
-   npm run test # Run tests
-   npm run lint # Check code style
-   ```
+This is how I typically work on new features:
 
-2. **Testing Changes**:
-   - Use `demo-working.html` for quick functional testing
-   - Main app at `localhost:3000` for integration testing
-   - Check browser console for errors or warnings
+1. **Start the dev server**: `npm run dev`
+2. **Open the app** in browser with DevTools open (F12)
+3. **Check the demo first**: `public/demo.html` to understand expected behavior
+4. **Make changes** in small increments
+5. **Test in browser** - refresh and see what broke 😅
+6. **Check console** for errors or warnings
+7. **Run linting**: `npm run lint` before committing
+8. **Test on mobile** using Chrome DevTools device emulation
 
-3. **Before Committing**:
-   ```bash
-   npm run type-check  # Ensure TypeScript compiles
-   npm run lint        # Fix any linting issues
-   npm run test        # All tests should pass
-   ```
+**Pro tip**: I keep the browser console open all the time. React error messages are actually really helpful once you get used to them.
 
-## Testing Strategy
+## Architecture Overview (The 30,000 Foot View)
 
-### Test Structure
+### How It All Fits Together
+
+I built this as a **single-page application (SPA)** with a **RESTful API backend**. Here's the data flow:
 
 ```
-src/
-├── __tests__/          # Unit tests
-├── components/
-│   └── __tests__/      # Component tests
-└── lib/
-    └── __tests__/      # Library/utility tests
+User Input → React Component → API Call → AI Service → Database → Response → UI Update
 ```
 
-### Running Tests
+**Frontend (React/Next.js):**
+- Handles all user interactions
+- Manages conversation state
+- Processes voice input/output
+- Displays progress and analytics
 
-**Unit Tests** (Jest + React Testing Library):
-```bash
-npm run test                    # Run all tests
-npm run test -- --watch        # Watch mode
-npm run test -- --coverage     # Coverage report
-npm run test conversation      # Run specific test files
-```
+**Backend (Next.js API Routes):**
+- Authenticates users
+- Manages conversation history
+- Integrates with OpenAI
+- Tracks learning progress
 
-**Component Testing Example**:
-```typescript
-// src/components/__tests__/MainApp.test.tsx
-import { render, screen, fireEvent } from '@testing-library/react';
-import { MainApp } from '../MainApp';
+**External Services:**
+- **OpenAI GPT-4**: Main conversation AI
+- **Web Speech API**: Voice recognition (browser-based)
+- **Vercel**: Hosting and deployment
 
-describe('MainApp', () => {
-  test('starts new conversation when button clicked', async () => {
-    render(<MainApp />);
-    
-    const startButton = screen.getByText('Start Conversation');
-    fireEvent.click(startButton);
-    
-    expect(await screen.findByText('AI')).toBeInTheDocument();
-  });
+### State Management Philosophy
 
-  test('handles voice input correctly', async () => {
-    // Mock Web Speech API
-    const mockSpeechRecognition = {
-      start: jest.fn(),
-      stop: jest.fn(),
-      addEventListener: jest.fn()
-    };
-    global.webkitSpeechRecognition = jest.fn(() => mockSpeechRecognition);
-    
-    render(<MainApp />);
-    
-    const voiceButton = screen.getByLabelText('Start voice recording');
-    fireEvent.click(voiceButton);
-    
-    expect(mockSpeechRecognition.start).toHaveBeenCalled();
-  });
-});
-```
-
-**AI Service Testing**:
-```typescript
-// src/lib/ai/__tests__/conversation-engine.test.ts
-import { ConversationEngine } from '../conversation-engine';
-import { MockAIService } from '../mock-ai-service';
-
-describe('ConversationEngine', () => {
-  let engine: ConversationEngine;
-  
-  beforeEach(() => {
-    engine = new ConversationEngine(new MockAIService());
-  });
-
-  test('generates contextual responses', async () => {
-    const response = await engine.generateResponse(
-      'Bonjour',
-      { language: 'french', context: 'restaurant' }
-    );
-    
-    expect(response.text).toContain('restaurant');
-    expect(response.language).toBe('french');
-    expect(response.analysis.grammarScore).toBeGreaterThan(0);
-  });
-});
-```
-
-### E2E Testing with Playwright
-
-```bash
-# Install Playwright
-npm install --save-dev @playwright/test
-
-# Run E2E tests
-npx playwright test
-
-# Run tests in headed mode (see browser)
-npx playwright test --headed
-```
-
-**E2E Test Example**:
-```typescript
-// tests/conversation-flow.spec.ts
-import { test, expect } from '@playwright/test';
-
-test('complete conversation flow', async ({ page }) => {
-  await page.goto('http://localhost:3000');
-  
-  // Start conversation
-  await page.click('[data-testid="start-conversation"]');
-  
-  // Send message
-  await page.fill('[data-testid="message-input"]', 'Hello');
-  await page.click('[data-testid="send-button"]');
-  
-  // Check AI response
-  await expect(page.locator('[data-testid="ai-message"]')).toBeVisible();
-  
-  // Check grammar analysis
-  await expect(page.locator('[data-testid="grammar-score"]')).toContainText('%');
-});
-```
-
-## Architecture Deep Dive
-
-### State Management
-
-**Local State Strategy**: Using React's built-in state management with Context API for global state.
+I kept it simple with React's built-in state management:
 
 ```typescript
-// src/lib/context/AppContext.tsx
-interface AppState {
-  user: User | null;
-  conversation: Conversation | null;
-  progress: LearningProgress;
-  settings: UserSettings;
-}
+// Global state: React Context
+const AppContext = createContext<AppState>();
 
-const AppContext = createContext<{
-  state: AppState;
-  dispatch: React.Dispatch<AppAction>;
-}>();
+// Local state: useState hooks
+const [messages, setMessages] = useState<Message[]>([]);
 
-// Usage in components
-const { state, dispatch } = useContext(AppContext);
+// Server state: Custom hooks with caching
+const { data: progress } = useProgress();
 ```
 
-**State Updates**:
+**Why I didn't use Redux:** For this project size, React Context + useState was enough. Redux felt like overkill and would have slowed down development.
+
+**State structure:**
+- **User state**: Authentication, preferences, progress
+- **Conversation state**: Current conversation, message history
+- **UI state**: Loading states, modals, notifications
+- **Cache state**: API responses, voice recordings
+
+## AI Integration Deep Dive
+
+### How I Built the Conversation Engine
+
+This was the hardest part of the project. Here's what I learned:
+
+**The Challenge**: Making GPT-4 act like a consistent language tutor who remembers context and adapts to user level.
+
+**My Solution**: Custom prompt engineering + conversation context management.
+
 ```typescript
-// Update conversation state
-dispatch({
-  type: 'ADD_MESSAGE',
-  payload: {
-    message: newMessage,
-    analysis: grammarAnalysis
-  }
-});
-
-// Update user progress
-dispatch({
-  type: 'UPDATE_PROGRESS',
-  payload: {
-    xp: state.progress.xp + earnedXP,
-    streak: newStreak
-  }
-});
-```
-
-### AI Integration Architecture
-
-**Service Layer Pattern**:
-```typescript
-interface AIService {
-  generateResponse(message: string, context: ConversationContext): Promise<AIResponse>;
-  analyzeGrammar(text: string, language: string): Promise<GrammarAnalysis>;
-  analyzePronunciation(audio: Blob, text: string): Promise<PronunciationAnalysis>;
-}
-
-class OpenAIService implements AIService {
-  async generateResponse(message: string, context: ConversationContext) {
-    const prompt = this.buildPrompt(message, context);
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4',
-      messages: [{ role: 'user', content: prompt }]
-    });
-    return this.parseResponse(response);
-  }
-}
-
-class MockAIService implements AIService {
-  // Implementation for development without API costs
-}
-```
-
-**Conversation Engine**:
-```typescript
+// Simplified version of my conversation engine
 class ConversationEngine {
-  constructor(private aiService: AIService) {}
+  async generateResponse(userMessage: string, context: ConversationContext) {
+    // 1. Build the prompt with context
+    const prompt = this.buildPrompt(userMessage, context);
+    
+    // 2. Call OpenAI with retries
+    const response = await this.callOpenAI(prompt);
+    
+    // 3. Parse and validate response
+    const parsedResponse = this.parseResponse(response);
+    
+    // 4. Update conversation context
+    this.updateContext(context, userMessage, parsedResponse);
+    
+    return parsedResponse;
+  }
   
-  async processMessage(message: string, context: ConversationContext) {
-    // 1. Analyze user input
-    const grammarAnalysis = await this.aiService.analyzeGrammar(
-      message, 
-      context.language
-    );
-    
-    // 2. Generate contextual response
-    const aiResponse = await this.aiService.generateResponse(message, {
-      ...context,
-      userLevel: grammarAnalysis.estimatedLevel,
-      previousMessages: context.history
-    });
-    
-    // 3. Update conversation state
-    const conversationUpdate = {
-      userMessage: { text: message, analysis: grammarAnalysis },
-      aiResponse: aiResponse,
-      timestamp: new Date()
-    };
-    
-    return conversationUpdate;
+  private buildPrompt(message: string, context: ConversationContext): string {
+    return `
+You are ${context.aiPersona.name}, a ${context.aiPersona.role}.
+The user is learning ${context.language} at ${context.level} level.
+
+Previous conversation:
+${context.history.slice(-10).map(m => `${m.sender}: ${m.content}`).join('\n')}
+
+User just said: "${message}"
+
+Respond naturally, considering:
+- Keep language appropriate for ${context.level} level
+- Gently correct major errors
+- Ask follow-up questions
+- Stay in character
+
+Response format:
+{
+  "text": "Your response in ${context.language}",
+  "translation": "English translation", 
+  "teaching_notes": ["Key grammar points", "Vocabulary tips"]
+}
+`;
   }
 }
 ```
 
-### Voice Processing Pipeline
+### Prompt Engineering Lessons
+
+**What I learned the hard way:**
+
+1. **Be specific about format**: GPT-4 is great but inconsistent without clear formatting instructions
+2. **Context is everything**: Including recent conversation history made responses way more natural
+3. **Personality matters**: Giving the AI a name and role made conversations feel more human
+4. **Less is more**: My first prompts were 1000+ words. Shorter, focused prompts work better
+5. **Test with edge cases**: What happens if the user says something inappropriate or completely off-topic?
+
+**My prompt evolution:**
+- **Version 1**: "You are a language tutor. Help the user learn Spanish."
+- **Version 15**: *[2000 words of detailed instructions]*
+- **Version 23** (current): *[Clean, focused, gets the job done]*
+
+### Handling AI Failures
+
+OpenAI's API isn't 100% reliable, so I built fallbacks:
+
+```typescript
+async function callAIWithFallbacks(prompt: string): Promise<AIResponse> {
+  try {
+    return await openAI.complete(prompt);
+  } catch (error) {
+    console.warn('OpenAI failed, trying backup strategies...');
+    
+    if (error.code === 'rate_limit_exceeded') {
+      return await this.generateFallbackResponse(prompt);
+    }
+    
+    if (error.code === 'service_unavailable') {
+      return await this.getCachedResponse(prompt);
+    }
+    
+    // Last resort: mock response
+    return this.mockAIService.complete(prompt);
+  }
+}
+```
+
+## Voice Integration (The Tricky Part)
+
+### Web Speech API Integration
+
+Voice features were way harder than I expected. Here's what I learned:
+
+**The Good:**
+- Web Speech API is built into modern browsers
+- No server-side processing needed
+- Real-time speech recognition
+
+**The Bad:**
+- Browser support is inconsistent
+- Accuracy varies wildly by accent
+- Chrome works best, Safari is mediocre, Firefox is... complicated
+
+**My implementation:**
 
 ```typescript
 class VoiceHandler {
   private recognition: SpeechRecognition;
-  private synthesis: SpeechSynthesis;
   
-  async startRecording(): Promise<string> {
+  constructor() {
+    // Check browser support
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+      throw new Error('Speech recognition not supported');
+    }
+    
+    this.recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+    this.setupRecognition();
+  }
+  
+  private setupRecognition() {
+    this.recognition.continuous = false;
+    this.recognition.interimResults = false;
+    this.recognition.lang = 'es-ES'; // Spanish recognition
+    
+    this.recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      this.onTranscript?.(transcript);
+    };
+    
+    this.recognition.onerror = (event) => {
+      console.error('Speech recognition error:', event.error);
+      this.onError?.(event.error);
+    };
+  }
+  
+  startRecording(): Promise<string> {
     return new Promise((resolve, reject) => {
-      this.recognition.onresult = (event) => {
-        const transcript = event.results[0][0].transcript;
-        resolve(transcript);
-      };
-      
-      this.recognition.onerror = reject;
+      this.onTranscript = resolve;
+      this.onError = reject;
       this.recognition.start();
     });
   }
-  
-  async analyzePronunciation(audioBlob: Blob, expectedText: string) {
-    // Send to pronunciation analysis service
-    const formData = new FormData();
-    formData.append('audio', audioBlob);
-    formData.append('text', expectedText);
+}
+```
+
+### Pronunciation Analysis
+
+This was my biggest technical challenge. How do you score pronunciation programmatically?
+
+**My approach:**
+1. Use Web Speech API confidence scores
+2. Compare recognized text with expected text
+3. Phoneme-level analysis (basic)
+4. User feedback integration
+
+**The code (simplified):**
+
+```typescript
+class PronunciationAnalyzer {
+  analyzePronunciation(audioBlob: Blob, expectedText: string): PronunciationScore {
+    // This is obviously simplified - the real version is much more complex
+    const recognizedText = this.speechToText(audioBlob);
+    const similarity = this.textSimilarity(recognizedText, expectedText);
+    const confidence = this.getConfidenceScore(audioBlob);
     
-    const response = await fetch('/api/voice/analyze', {
-      method: 'POST',
-      body: formData
+    return {
+      score: Math.round((similarity + confidence) / 2),
+      feedback: this.generateFeedback(recognizedText, expectedText),
+      suggestions: this.getSuggestions(recognizedText, expectedText)
+    };
+  }
+}
+```
+
+**Honestly**: Pronunciation scoring is still not perfect. It's more of a "directional guidance" than precise assessment. But users find it helpful, which is what matters.
+
+## Testing Strategy (What I Actually Test)
+
+### My Testing Philosophy
+
+**Confession**: I didn't write tests from the beginning, and I regret it. Here's what I learned:
+
+1. **Test user flows, not implementation details**
+2. **Integration tests catch more real bugs than unit tests**
+3. **Manual testing is still crucial for UX**
+4. **Test error states - they happen more than you think**
+
+### What I Test Now
+
+**Unit Tests** (Jest + React Testing Library):
+```typescript
+// Example: Testing the conversation engine
+describe('ConversationEngine', () => {
+  it('generates appropriate responses for beginner level', async () => {
+    const engine = new ConversationEngine();
+    const response = await engine.generateResponse('Hola', {
+      level: 'beginner',
+      language: 'spanish'
     });
     
-    return response.json();
-  }
+    expect(response.text).toBeDefined();
+    expect(response.translation).toBeDefined();
+    expect(response.difficulty).toBeLessThan(3); // On scale of 1-5
+  });
   
-  speak(text: string, language: string) {
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = language;
-    this.synthesis.speak(utterance);
-  }
-}
-```
-
-## API Integration
-
-### OpenAI Integration
-
-**Configuration**:
-```typescript
-// src/lib/ai/openai-config.ts
-import OpenAI from 'openai';
-
-export const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-  dangerouslyAllowBrowser: true // Only for client-side demos
+  it('handles AI service failures gracefully', async () => {
+    const engine = new ConversationEngine(new MockFailingAI());
+    const response = await engine.generateResponse('Hello');
+    
+    expect(response.text).toContain('Sorry, I am having trouble');
+  });
 });
-
-export const MODELS = {
-  conversation: 'gpt-4',
-  grammar: 'gpt-3.5-turbo',
-  translation: 'gpt-3.5-turbo'
-} as const;
 ```
 
-**Prompt Engineering**:
+**Integration Tests** (Playwright):
 ```typescript
-export function buildConversationPrompt(
-  userMessage: string,
-  context: ConversationContext
-): string {
-  return `
-You are ${context.aiPersona.name}, a ${context.aiPersona.role} in a ${context.scenario} scenario.
-
-User's language level: ${context.userLevel}
-Target language: ${context.language}
-Learning focus: ${context.learningGoals.join(', ')}
-
-Previous conversation:
-${context.history.map(msg => `${msg.sender}: ${msg.text}`).join('\n')}
-
-User just said: "${userMessage}"
-
-Respond naturally as ${context.aiPersona.name} would, considering:
-1. Keep language appropriate for ${context.userLevel} level
-2. Gently correct major errors without being pedantic
-3. Encourage continued conversation
-4. Stay in character and scenario
-
-Format your response as JSON:
-{
-  "text": "Your response in ${context.language}",
-  "translation": "English translation",
-  "pronunciation_tips": ["tip1", "tip2"],
-  "grammar_explanation": "Brief explanation if correction needed",
-  "cultural_note": "Optional cultural context"
-}
-`;
-}
+// Testing the full conversation flow
+test('user can complete a conversation', async ({ page }) => {
+  await page.goto('http://localhost:3000');
+  
+  // Start conversation
+  await page.click('[data-testid="start-conversation"]');
+  await expect(page.locator('[data-testid="ai-message"]')).toBeVisible();
+  
+  // Send message
+  await page.fill('[data-testid="message-input"]', 'Hola');
+  await page.click('[data-testid="send-button"]');
+  
+  // Check response
+  await expect(page.locator('[data-testid="ai-response"]')).toBeVisible();
+  
+  // Check grammar score appears
+  await expect(page.locator('[data-testid="grammar-score"]')).toContainText('%');
+});
 ```
 
-### Error Handling
+**Manual Testing Checklist:**
+- [ ] Conversation flow works on desktop
+- [ ] Voice features work in Chrome/Safari
+- [ ] Mobile responsive design works
+- [ ] Error messages are helpful
+- [ ] Loading states don't hang
+- [ ] Offline mode degrades gracefully
 
-```typescript
-class APIError extends Error {
-  constructor(
-    message: string,
-    public status: number,
-    public code: string
-  ) {
-    super(message);
-    this.name = 'APIError';
-  }
-}
+### Running Tests
 
-async function makeAPICall<T>(
-  apiCall: () => Promise<T>,
-  retries: number = 3
-): Promise<T> {
-  let lastError: Error;
-  
-  for (let i = 0; i < retries; i++) {
-    try {
-      return await apiCall();
-    } catch (error) {
-      lastError = error as Error;
+```bash
+# Unit tests
+npm run test                    # Run once
+npm run test:watch             # Watch mode (re-runs on changes)
+npm run test:coverage          # See test coverage
+
+# Integration tests
+npx playwright test            # Headless
+npx playwright test --headed   # See browser
+npx playwright test --debug    # Debug mode
+```
+
+## Deployment & DevOps
+
+### Why I Chose Vercel
+
+**The honest reasons:**
+1. **It's free for students** (huge factor)
+2. **Zero configuration** for Next.js
+3. **Automatic deployments** from GitHub
+4. **Built-in analytics** without extra setup
+5. **Global CDN** makes the app fast worldwide
+
+**The setup:**
+1. Connect GitHub repo to Vercel
+2. Add environment variables in Vercel dashboard
+3. Push to main branch = automatic deployment
+4. Preview deployments for pull requests
+
+### Environment Variables for Production
+
+```env
+# Production environment variables
+NODE_ENV=production
+NEXTAUTH_URL=https://yourdomain.com
+OPENAI_API_KEY=your_real_api_key
+DATABASE_URL=your_production_database_url
+NEXTAUTH_SECRET=your_super_secret_key
+```
+
+### Deployment Process
+
+My deployment workflow:
+
+1. **Local development** with hot reloading
+2. **Push to feature branch** for testing
+3. **Create pull request** (gets preview deployment)
+4. **Test preview deployment** to make sure it works
+5. **Merge to main** (triggers production deployment)
+6. **Monitor** for errors in production
+
+**CI/CD Pipeline** (.github/workflows/deploy.yml):
+```yaml
+name: Deploy to Production
+on:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run type-check
+      - run: npm run test
       
-      if (error instanceof APIError && error.status >= 400 && error.status < 500) {
-        // Don't retry client errors
-        throw error;
-      }
-      
-      if (i < retries - 1) {
-        const delay = Math.pow(2, i) * 1000; // Exponential backoff
-        await new Promise(resolve => setTimeout(resolve, delay));
-      }
-    }
-  }
-  
-  throw lastError!;
-}
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: amondnet/vercel-action@v20
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
 ```
 
 ## Contributing Guidelines
 
+### How to Contribute (Please Do!)
+
+I built this project because I believe language learning should be more accessible. If you want to help:
+
+**Types of contributions I'd love:**
+- 🐛 **Bug fixes** - especially voice/mobile issues
+- 🌍 **Language support** - native speakers helping with conversation patterns
+- 📱 **Mobile improvements** - making it work better on phones
+- 🎯 **Accessibility** - making it usable for everyone
+- 📚 **Documentation** - making setup easier for other students
+- 🧪 **Testing** - writing tests I should have written from the start
+
 ### Code Style
 
-We use **Prettier** and **ESLint** to maintain consistent code style.
+I use Prettier and ESLint to keep code consistent:
 
-**Prettier Configuration** (`.prettierrc`):
-```json
-{
-  "semi": true,
-  "trailingComma": "es5",
-  "singleQuote": true,
-  "printWidth": 80,
-  "tabWidth": 2,
-  "useTabs": false
-}
+```bash
+# Format code
+npm run lint:fix
+
+# Check formatting
+npm run lint
 ```
 
-**ESLint Configuration** (`.eslintrc.json`):
-```json
-{
-  "extends": [
-    "next/core-web-vitals",
-    "@typescript-eslint/recommended",
-    "prettier"
-  ],
-  "rules": {
-    "@typescript-eslint/no-unused-vars": "error",
-    "prefer-const": "error",
-    "no-console": "warn"
-  }
-}
-```
+**My code style preferences:**
+- **Descriptive variable names** - `conversationHistory` not `ch`
+- **Small functions** - easier to test and understand
+- **Comments for complex logic** - especially the AI prompt engineering
+- **TypeScript for everything** - catches so many bugs
+- **Consistent naming** - `camelCase` for variables, `PascalCase` for components
 
 ### Git Workflow
 
-1. **Fork the repository** and create a feature branch
-2. **Make atomic commits** with clear messages
-3. **Write tests** for new functionality
-4. **Update documentation** for API changes
-5. **Submit a pull request** with description
+**Branch naming:**
+- `feature/conversation-scenarios` - new features
+- `fix/voice-recording-bug` - bug fixes
+- `docs/api-examples` - documentation improvements
 
-**Commit Message Format**:
-```
-type(scope): brief description
-
-- Longer description if needed
-- What changed and why
-- Any breaking changes
-
-Closes #issue-number
-```
-
-**Examples**:
+**Commit messages:**
 ```bash
-feat(voice): add pronunciation feedback with visual indicators
+git commit -m "feat: add Spanish conversation scenarios
 
-- Implement real-time pronunciation scoring
-- Add visual feedback for phoneme accuracy
-- Include audio examples for corrections
+- Implement restaurant, shopping, and travel scenarios
+- Add cultural context notes for each scenario
+- Update AI prompts for better Spanish responses
 
-Closes #156
-
-fix(ai): handle OpenAI rate limit errors gracefully
-
-- Add exponential backoff retry logic
-- Show user-friendly error messages
-- Fall back to mock service in development
-
-Closes #203
+Closes #42"
 ```
 
-### Pull Request Process
+**Pull Request Process:**
+1. Fork the repo and create a feature branch
+2. Make your changes with tests (if applicable)
+3. Run `npm run lint` and `npm run type-check`
+4. Push to your fork and create a pull request
+5. Describe what you changed and why
+6. Be patient with code review - I'm still learning too!
 
-1. **Ensure CI passes**: All tests, linting, and type checking
-2. **Update documentation**: README, API docs, or inline comments
-3. **Add screenshots**: For UI changes
-4. **Describe changes**: What, why, and how
-5. **Link issues**: Reference related issues or discussions
+## Debugging Common Issues
 
-**PR Template**:
-```markdown
-## Description
-Brief description of changes
+### "It Doesn't Work!" Troubleshooting
 
-## Type of Change
-- [ ] Bug fix
-- [ ] New feature
-- [ ] Breaking change
-- [ ] Documentation update
-
-## Testing
-- [ ] Unit tests pass
-- [ ] E2E tests pass
-- [ ] Manual testing completed
-
-## Screenshots (if applicable)
-
-## Checklist
-- [ ] Code follows style guidelines
-- [ ] Self-review completed
-- [ ] Documentation updated
-- [ ] Tests added/updated
-```
-
-### Code Review Guidelines
-
-**As a Reviewer**:
-- Focus on logic, readability, and maintainability
-- Suggest improvements, don't just point out problems
-- Be respectful and constructive
-- Test the changes locally when possible
-
-**As an Author**:
-- Respond to all feedback
-- Make requested changes or explain why not
-- Keep discussions focused on the code
-- Be open to suggestions and learning
-
-## Deployment
-
-### Production Build
-
+**Issue: App won't start**
 ```bash
-# Create optimized production build
-npm run build
-
-# Test production build locally
-npm run start
-```
-
-### Environment Configuration
-
-**Production Environment Variables**:
-```env
-NODE_ENV=production
-NEXTAUTH_URL=https://yourdomain.com
-OPENAI_API_KEY=your_production_key
-DATABASE_URL=your_production_database_url
-NEXTAUTH_SECRET=your_production_secret
-```
-
-### Vercel Deployment (Recommended)
-
-1. **Connect repository** to Vercel
-2. **Configure environment variables** in Vercel dashboard
-3. **Deploy**: Automatic on push to main branch
-
-**Vercel Configuration** (`vercel.json`):
-```json
-{
-  "framework": "nextjs",
-  "buildCommand": "npm run build",
-  "devCommand": "npm run dev",
-  "installCommand": "npm install",
-  "env": {
-    "OPENAI_API_KEY": "@openai-api-key",
-    "NEXTAUTH_SECRET": "@nextauth-secret"
-  }
-}
-```
-
-### Docker Deployment
-
-**Dockerfile**:
-```dockerfile
-FROM node:18-alpine AS builder
-
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci --only=production
-
-COPY . .
-RUN npm run build
-
-FROM node:18-alpine AS runner
-WORKDIR /app
-
-ENV NODE_ENV production
-
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
-
-COPY --from=builder /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-
-USER nextjs
-
-EXPOSE 3000
-
-ENV PORT 3000
-
-CMD ["node", "server.js"]
-```
-
-**Docker Compose** (`docker-compose.yml`):
-```yaml
-version: '3.8'
-
-services:
-  app:
-    build: .
-    ports:
-      - "3000:3000"
-    environment:
-      - NODE_ENV=production
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
-    depends_on:
-      - postgres
-
-  postgres:
-    image: postgres:15
-    environment:
-      - POSTGRES_DB=linguaai
-      - POSTGRES_USER=linguaai
-      - POSTGRES_PASSWORD=${DB_PASSWORD}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-
-volumes:
-  postgres_data:
-```
-
-## Performance Optimization
-
-### Bundle Analysis
-
-```bash
-# Analyze bundle size
-npm run analyze
-
-# Check for unused dependencies
-npx depcheck
-
-# Audit for security vulnerabilities
-npm audit
-```
-
-### Web Vitals Optimization
-
-**Core Web Vitals targets**:
-- **LCP (Largest Contentful Paint)**: < 2.5s
-- **FID (First Input Delay)**: < 100ms
-- **CLS (Cumulative Layout Shift)**: < 0.1
-
-**Optimization strategies implemented**:
-```typescript
-// 1. Code splitting with dynamic imports
-const VoiceRecorder = dynamic(() => import('./VoiceRecorder'), {
-  loading: () => <div>Loading voice recorder...</div>,
-  ssr: false // Client-side only for microphone access
-});
-
-// 2. Image optimization
-import Image from 'next/image';
-
-<Image
-  src="/avatar.jpg"
-  alt="AI Avatar"
-  width={64}
-  height={64}
-  priority // For above-the-fold images
-/>
-
-// 3. Font optimization
-import { Inter } from 'next/font/google';
-
-const inter = Inter({
-  subsets: ['latin'],
-  display: 'swap'
-});
-```
-
-### Caching Strategy
-
-```typescript
-// Service Worker for offline functionality
-// public/sw.js
-const CACHE_NAME = 'linguaai-v1';
-const urlsToCache = [
-  '/',
-  '/static/js/bundle.js',
-  '/static/css/main.css',
-  '/manifest.json'
-];
-
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => cache.addAll(urlsToCache))
-  );
-});
-
-// API response caching
-const cache = new Map();
-
-async function cachedAPICall(key: string, apiCall: () => Promise<any>) {
-  if (cache.has(key)) {
-    return cache.get(key);
-  }
-  
-  const result = await apiCall();
-  cache.set(key, result);
-  
-  // Expire after 5 minutes
-  setTimeout(() => cache.delete(key), 5 * 60 * 1000);
-  
-  return result;
-}
-```
-
-## Troubleshooting
-
-### Common Issues
-
-**Issue: "Module not found" errors**
-```bash
-# Clear node_modules and reinstall
+# Clear everything and start fresh
 rm -rf node_modules package-lock.json
+npm cache clean --force
 npm install
+npm run dev
 ```
+
+**Issue: OpenAI API errors**
+- Check if your API key is correct in `.env.local`
+- Make sure you have credit on your OpenAI account
+- Set `MOCK_AI_SERVICE=true` to use mock responses instead
+
+**Issue: Voice features don't work**
+- Make sure you're using HTTPS (required for microphone access)
+- Try Chrome first - it has the best Web Speech API support
+- Check browser permissions for microphone access
+- Test with different audio devices
 
 **Issue: TypeScript compilation errors**
 ```bash
 # Clear Next.js cache
 rm -rf .next
 npm run dev
+
+# Check types without building
+npm run type-check
 ```
 
-**Issue: OpenAI API errors**
-- Check API key in `.env.local`
-- Verify rate limits haven't been exceeded
-- Set `MOCK_AI_SERVICE=true` for development
+**Issue: Styles look broken**
+- Make sure Tailwind CSS is properly configured
+- Check if you're using the right class names
+- Clear browser cache (Ctrl+F5 or Cmd+Shift+R)
 
-**Issue: Voice features not working**
-- Ensure HTTPS (required for microphone access)
-- Check browser permissions
-- Test with different browsers
+### Debugging Tools I Use
 
-**Issue: Build fails in production**
-```bash
-# Check for environment-specific issues
-npm run build
-npm run start
+**Browser DevTools:**
+- **Console tab**: For JavaScript errors and logs
+- **Network tab**: To see API requests and responses
+- **Application tab**: To check localStorage and service workers
+- **Device emulation**: To test mobile responsiveness
 
-# Debug build process
-npm run build -- --debug
+**VS Code debugging:**
+```json
+// .vscode/launch.json
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug Next.js",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/node_modules/next/dist/bin/next",
+      "args": ["dev"],
+      "console": "integratedTerminal"
+    }
+  ]
+}
 ```
 
-### Debugging Tools
-
-**React Developer Tools**:
-- Install browser extension
-- Inspect component state and props
-- Profile performance
-
-**Next.js Debug Mode**:
-```bash
-NODE_OPTIONS='--inspect' npm run dev
-```
-
-**Console Debugging**:
+**Useful debugging commands:**
 ```typescript
-// Add debug logs (remove before production)
+// Add these for debugging (remove before production)
 console.log('Conversation state:', conversationState);
-console.log('API response:', response);
+console.table(messages); // Nice table format for arrays
+console.time('API call'); // Start timer
+console.timeEnd('API call'); // End timer
 
-// Use debugger in development
+// Breakpoint in development
 if (process.env.NODE_ENV === 'development') {
   debugger;
 }
 ```
 
-### Performance Monitoring
+## Performance Optimization
 
+### What I Learned About Making Things Fast
+
+**The biggest performance wins:**
+
+1. **Code splitting**: Loading only what you need
 ```typescript
-// Web Vitals measurement
-import { getCLS, getFID, getFCP, getLCP, getTTFB } from 'web-vitals';
-
-getCLS(console.log);
-getFID(console.log);
-getFCP(console.log);
-getLCP(console.log);
-getTTFB(console.log);
-
-// Custom performance marks
-performance.mark('conversation-start');
-// ... conversation logic
-performance.mark('conversation-end');
-performance.measure('conversation-duration', 'conversation-start', 'conversation-end');
+// Lazy load heavy components
+const VoiceRecorder = dynamic(() => import('./VoiceRecorder'), {
+  loading: () => <div>Loading...</div>,
+  ssr: false // Don't render on server
+});
 ```
 
-## Advanced Topics
-
-### Custom AI Models
-
-For advanced users who want to integrate custom language models:
-
+2. **Image optimization**: Using Next.js Image component
 ```typescript
-interface CustomAIProvider {
-  modelName: string;
-  apiEndpoint: string;
-  authenticate(): Promise<string>;
-  generateResponse(prompt: string): Promise<string>;
-}
+import Image from 'next/image';
 
-class HuggingFaceProvider implements CustomAIProvider {
-  constructor(private apiKey: string, public modelName: string) {}
-  
-  async authenticate() {
-    return `Bearer ${this.apiKey}`;
+<Image
+  src="/ai-avatar.jpg"
+  alt="AI Avatar"
+  width={64}
+  height={64}
+  priority // For above-the-fold images
+/>
+```
+
+3. **API response caching**: Don't call expensive APIs repeatedly
+```typescript
+// Cache conversation responses
+const conversationCache = new Map();
+
+async function getCachedResponse(prompt: string) {
+  if (conversationCache.has(prompt)) {
+    return conversationCache.get(prompt);
   }
   
-  async generateResponse(prompt: string) {
-    const response = await fetch(`https://api-inference.huggingface.co/models/${this.modelName}`, {
-      method: 'POST',
-      headers: {
-        'Authorization': await this.authenticate(),
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ inputs: prompt })
-    });
-    
-    return response.json();
-  }
+  const response = await openai.complete(prompt);
+  conversationCache.set(prompt, response);
+  return response;
 }
 ```
 
-### Internationalization (i18n)
+### Bundle Analysis
 
-```typescript
-// lib/i18n.ts
-export const messages = {
-  en: {
-    'conversation.start': 'Start Conversation',
-    'conversation.end': 'End Conversation',
-    'progress.xp': 'XP Earned: {xp}'
-  },
-  es: {
-    'conversation.start': 'Iniciar Conversación',
-    'conversation.end': 'Terminar Conversación',
-    'progress.xp': 'XP Ganado: {xp}'
-  }
-};
+```bash
+# Check what's making your app big
+npm run analyze
 
-export function t(key: string, params: Record<string, any> = {}) {
-  const locale = getCurrentLocale();
-  let message = messages[locale]?.[key] || messages.en[key] || key;
-  
-  // Replace parameters
-  Object.entries(params).forEach(([param, value]) => {
-    message = message.replace(`{${param}}`, value);
-  });
-  
-  return message;
-}
+# Look for:
+# - Huge libraries you don't really need
+# - Duplicate dependencies
+# - Code that could be lazy-loaded
 ```
 
-### Real-time Features with WebSockets
+## What I'd Do Differently
 
-```typescript
-// lib/realtime/websocket-client.ts
-class WebSocketClient {
-  private ws: WebSocket | null = null;
-  
-  connect(userId: string) {
-    this.ws = new WebSocket(`wss://api.linguaai.com/ws?userId=${userId}`);
-    
-    this.ws.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      this.handleMessage(data);
-    };
-  }
-  
-  sendMessage(message: ConversationMessage) {
-    if (this.ws?.readyState === WebSocket.OPEN) {
-      this.ws.send(JSON.stringify({
-        type: 'conversation_message',
-        data: message
-      }));
-    }
-  }
-  
-  private handleMessage(data: any) {
-    switch (data.type) {
-      case 'ai_response':
-        this.onAIResponse(data.message);
-        break;
-      case 'friend_activity':
-        this.onFriendActivity(data.activity);
-        break;
-    }
-  }
-}
-```
+### Technical Decisions I'd Change
+
+**State Management**: I'd probably use Zustand instead of React Context for global state. Context re-renders everything when state changes, which gets slow.
+
+**Database**: I started without a database, then added one later. Planning data persistence from the beginning would have saved time.
+
+**Testing**: I should have written tests from day one. Adding them later is painful and you miss bugs.
+
+**API Design**: My first API was inconsistent. I wish I'd planned the endpoint structure better.
+
+**Error Handling**: I built error handling reactively (when things broke). Proactive error handling would have made debugging easier.
+
+### Product Decisions I'd Change
+
+**Started too complex**: My first version tried to do everything. I should have started with just text conversations.
+
+**Didn't talk to users enough**: I built features I thought were cool, then discovered users wanted different things.
+
+**Perfectionism**: I spent too much time polishing small details instead of shipping and getting feedback.
+
+### What Went Right
+
+**Simple tech stack**: Next.js + TypeScript + Tailwind was a great choice. Everything works well together.
+
+**Mobile-first**: Building for mobile from the start made the desktop version better too.
+
+**Mock services**: Having mock AI responses saved tons of money during development.
+
+**Documentation**: Writing documentation as I built features helped me think through the design.
+
+## Resources That Helped Me
+
+### Learning Resources
+
+**Next.js:**
+- [Next.js Documentation](https://nextjs.org/docs) - Actually really well written
+- [Next.js Learn Course](https://nextjs.org/learn) - Interactive tutorials
+- [Vercel's YouTube Channel](https://www.youtube.com/c/VercelHQ) - Great talks and tutorials
+
+**React:**
+- [React Documentation](https://react.dev/) - The new docs are fantastic
+- [React Patterns](https://reactpatterns.com/) - Common patterns and best practices
+
+**TypeScript:**
+- [TypeScript Handbook](https://www.typescriptlang.org/docs/) - Comprehensive guide
+- [Total TypeScript](https://totaltypescript.com/) - Advanced TypeScript patterns
+
+**AI/OpenAI:**
+- [OpenAI Documentation](https://platform.openai.com/docs) - API reference and guides
+- [Prompt Engineering Guide](https://www.promptingguide.ai/) - How to write better prompts
+
+### Tools I Use Daily
+
+- **VS Code** with the extensions I mentioned above
+- **Chrome DevTools** for debugging
+- **Postman** for testing API endpoints
+- **GitHub Desktop** because I'm not a command line hero
+- **Figma** for quick UI mockups (free for students)
+
+### Communities That Helped
+
+- **Next.js Discord** - Super helpful community
+- **r/reactjs** - Good for React questions
+- **OpenAI Developer Forum** - For AI-specific issues
+- **CS Discord servers** at my university - Peer support is invaluable
 
 ---
 
-*This development guide is maintained by the LinguaAI team. For questions or suggestions, please open an issue or start a discussion in our GitHub repository.*
+*Building this project taught me more than any class or tutorial. The best way to learn web development is to build something you actually want to use. Feel free to reach out if you get stuck or just want to chat about language learning tech!*
+
+**[Email](mailto:priscilla.ong.chuhui@gmail.com)** | **[GitHub](https://github.com/PriscillaOng12)** | **Discord** @hiorhey
