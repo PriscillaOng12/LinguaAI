@@ -1,46 +1,33 @@
 # API Documentation
 
-*Complete API reference for LinguaAI - endpoints, authentication, examples, and integration guides*
+*Complete API reference for LinguaAI - built by a college student, documented like I wish APIs were when I was learning*
 
 ## Overview
 
-The LinguaAI API provides programmatic access to our AI-powered language learning conversation engine. This RESTful API allows developers to integrate conversational language learning into their applications, access user progress data, and customize learning experiences.
+The LinguaAI API lets you integrate AI-powered language conversation into your own applications. I built this API because I wanted other developers to be able to create language learning tools without having to figure out all the prompt engineering and conversation management I spent months on.
 
 **Base URL:** `https://api.linguaai.com/v1`  
-**Current Version:** v1.0  
-**Authentication:** Bearer token (OAuth 2.0)  
+**Current Version:** v1.0 (my first real API, so feedback welcome!)  
+**Authentication:** Bearer token (JWT-based)  
 **Response Format:** JSON  
-**Rate Limiting:** 1000 requests/hour per API key
+**Rate Limiting:** 1000 requests/hour (generous for now, might need to adjust based on usage)
+
+**Note:** This is a student project, so the API is free to use but comes with no SLA guarantees. I do my best to keep it running, but servers sometimes go down during finals week. 🤷‍♂️
 
 ## Authentication
 
-### OAuth 2.0 Flow
+### JWT Token Authentication
 
-LinguaAI uses OAuth 2.0 with PKCE for secure authentication. This ensures user data protection while enabling seamless third-party integrations.
+I went with JWT tokens because they're stateless and I don't have to worry about session storage. Plus, it's what I learned in my web dev class.
 
-**Step 1: Authorization Request**
+**Getting a token:**
 ```http
-GET https://api.linguaai.com/oauth/authorize
-  ?client_id=your_client_id
-  &redirect_uri=https://yourapp.com/callback
-  &response_type=code
-  &scope=read_profile,manage_conversations,read_progress
-  &state=random_state_string
-  &code_challenge=generated_challenge
-  &code_challenge_method=S256
-```
-
-**Step 2: Token Exchange**
-```http
-POST https://api.linguaai.com/oauth/token
+POST /auth/login
 Content-Type: application/json
 
 {
-  "grant_type": "authorization_code",
-  "client_id": "your_client_id",
-  "code": "authorization_code_from_step_1",
-  "redirect_uri": "https://yourapp.com/callback",
-  "code_verifier": "original_code_verifier"
+  "email": "your.email@example.com",
+  "password": "your_password"
 }
 ```
 
@@ -48,113 +35,54 @@ Content-Type: application/json
 ```json
 {
   "access_token": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "refresh_token": "def50200a54b5c2d4e6f8g9h0i1j2k3l4m5n6o7p8q9r0s1t2u3v4w5x6y7z8a9b0c1d2e3f4g5h6i7j8k9l0m1n2o3p4q5r6s7t8u9v0w1x2y3z4a5b6c7d8e9f0g1h2i3j4k5l6m7n8o9p0q1r2s3t4u5v6w7x8y9z0a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6a7b8c9d0e1f2g3h4i5j6k7l8m9n0o1p2q3r4s5t6u7v8w9x0y1z2a3b4c5d6e7f8g9h0i1j2k3l4m5n6o7p8q9r0s1t2u3v4w5x6y7z8a9b0c1d2e3f4g5h6i7j8k9l0m1n2o3p4q5r6s7t8u9v0w1x2y3z4a5b6c7d8e9f0g1h2i3j4k5l6m7n8o9p0q1r2s3t4u5v6w7x8y9z0a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6a7b8c9d0e1f2g3h4i5j6k7l8m9n0o1p2q3r4s5t6u7v8w9x0y1z2a3b4c5d6e7f8g9h0i1j2k3l4",
+  "refresh_token": "def50200a54b5c2d4e6f8g9h0i1j2k3l...",
   "token_type": "Bearer",
   "expires_in": 3600,
-  "scope": "read_profile manage_conversations read_progress"
+  "user": {
+    "id": "user_123456",
+    "email": "your.email@example.com",
+    "name": "Your Name"
+  }
 }
 ```
 
-### API Key Authentication (Alternative)
+**Using the token:**
+```http
+Authorization: Bearer YOUR_ACCESS_TOKEN
+```
 
-For server-to-server integrations, you can use API keys:
+### API Key Alternative (Easier for Testing)
+
+If you just want to try things out, you can get an API key from your dashboard instead of dealing with OAuth flows.
 
 ```http
 Authorization: Bearer YOUR_API_KEY
 ```
 
-**Getting an API key:**
-1. Log in to your LinguaAI dashboard
-2. Navigate to Settings > API Keys
-3. Click "Generate New Key"
-4. Copy and securely store your key
+**Pro tip:** I built a demo mode that works without any authentication - just omit the Authorization header and you'll get mock responses that are realistic enough for testing your integration.
 
-## Endpoints
+## Core Endpoints
 
-### User Management
+### Starting Conversations
 
-#### Get User Profile
-```http
-GET /users/me
-Authorization: Bearer {access_token}
-```
+#### Create New Conversation
+This is the main endpoint that gets everything started. The AI will generate an opening message based on the parameters you provide.
 
-**Response:**
-```json
-{
-  "id": "user_123456",
-  "email": "jane.doe@example.com",
-  "name": "Jane Doe",
-  "avatar_url": "https://cdn.linguaai.com/avatars/user_123456.jpg",
-  "created_at": "2024-01-15T10:30:00Z",
-  "last_active": "2024-03-15T14:22:00Z",
-  "subscription": {
-    "plan": "premium",
-    "status": "active",
-    "expires_at": "2024-04-15T10:30:00Z"
-  },
-  "preferences": {
-    "target_language": "spanish",
-    "native_language": "english",
-    "proficiency_level": "intermediate",
-    "daily_goal": 30,
-    "preferred_topics": ["business", "travel", "culture"]
-  },
-  "stats": {
-    "total_conversations": 47,
-    "total_time_minutes": 1240,
-    "current_streak": 12,
-    "xp_total": 2847
-  }
-}
-```
-
-#### Update User Preferences
-```http
-PATCH /users/me/preferences
-Authorization: Bearer {access_token}
-Content-Type: application/json
-
-{
-  "target_language": "french",
-  "proficiency_level": "beginner",
-  "daily_goal": 20,
-  "preferred_topics": ["cooking", "family", "hobbies"]
-}
-```
-
-**Response:**
-```json
-{
-  "id": "user_123456",
-  "preferences": {
-    "target_language": "french",
-    "native_language": "english",
-    "proficiency_level": "beginner",
-    "daily_goal": 20,
-    "preferred_topics": ["cooking", "family", "hobbies"]
-  },
-  "updated_at": "2024-03-15T14:30:00Z"
-}
-```
-
-### Conversations
-
-#### Start New Conversation
 ```http
 POST /conversations
-Authorization: Bearer {access_token}
+Authorization: Bearer {token}
 Content-Type: application/json
 
 {
-  "topic": "ordering_food_restaurant",
-  "difficulty": "intermediate",
-  "scenario": "You're at a French restaurant in Paris and want to order dinner",
-  "language": "french",
+  "topic": "ordering_food",
+  "difficulty": "beginner",
+  "language": "spanish",
+  "scenario": "You're at a tapas bar in Barcelona and want to order dinner",
+  "user_interests": ["food", "travel"],
   "custom_context": {
-    "restaurant_type": "bistro",
+    "restaurant_type": "tapas_bar",
     "dietary_restrictions": ["vegetarian"],
-    "budget": "moderate"
+    "time_of_day": "evening"
   }
 }
 ```
@@ -165,37 +93,42 @@ Content-Type: application/json
   "id": "conv_789012",
   "status": "active",
   "created_at": "2024-03-15T15:00:00Z",
-  "topic": "ordering_food_restaurant",
-  "difficulty": "intermediate",
-  "language": "french",
+  "topic": "ordering_food",
+  "difficulty": "beginner",
+  "language": "spanish",
   "ai_persona": {
-    "name": "Marie",
-    "role": "restaurant_server",
-    "personality": "friendly, helpful, patient"
+    "name": "Carlos",
+    "role": "waiter",
+    "personality": "friendly, patient, helpful",
+    "background": "Works at a family-owned tapas bar in Barcelona"
   },
-  "initial_message": {
-    "text": "Bonsoir ! Bienvenue dans notre bistro. Je suis Marie, votre serveuse ce soir. Avez-vous déjà regardé notre menu ?",
-    "translation": "Good evening! Welcome to our bistro. I'm Marie, your server tonight. Have you already looked at our menu?",
+  "opening_message": {
+    "text": "¡Hola! Bienvenido a nuestro restaurante. Soy Carlos. ¿Qué le gustaría beber?",
+    "translation": "Hello! Welcome to our restaurant. I'm Carlos. What would you like to drink?",
+    "pronunciation_guide": "OH-lah bee-en-veh-NEE-doh",
     "audio_url": "https://cdn.linguaai.com/audio/conv_789012_msg_001.mp3"
   },
-  "context": {
-    "restaurant_type": "bistro",
-    "dietary_restrictions": ["vegetarian"],
-    "budget": "moderate",
-    "menu_items": ["salade niçoise", "ratatouille", "quiche lorraine"]
-  }
+  "conversation_tips": [
+    "Start with greetings - 'Hola' is always safe",
+    "Don't worry about perfect grammar, focus on communication",
+    "Feel free to ask for help if you get stuck"
+  ]
 }
 ```
 
-#### Send Message in Conversation
+**What I learned building this:** The hardest part wasn't the technical implementation - it was figuring out how to make the AI persona feel consistent. I went through like 20 iterations of the prompt engineering before conversations started feeling natural.
+
+#### Send Message
+This is where the magic happens - the conversation flow.
+
 ```http
 POST /conversations/{conversation_id}/messages
-Authorization: Bearer {access_token}
+Authorization: Bearer {token}
 Content-Type: application/json
 
 {
   "type": "text",
-  "content": "Bonjour Marie ! Oui, j'ai regardé le menu. Est-ce que vous avez des plats végétariens ?",
+  "content": "Hola Carlos! Quiero una cerveza, por favor.",
   "audio_data": "base64_encoded_audio_optional"
 }
 ```
@@ -207,249 +140,153 @@ Content-Type: application/json
   "conversation_id": "conv_789012",
   "created_at": "2024-03-15T15:02:00Z",
   "user_message": {
-    "text": "Bonjour Marie ! Oui, j'ai regardé le menu. Est-ce que vous avez des plats végétariens ?",
-    "translation": "Hello Marie! Yes, I looked at the menu. Do you have vegetarian dishes?",
+    "text": "Hola Carlos! Quiero una cerveza, por favor.",
+    "translation": "Hello Carlos! I want a beer, please.",
     "analysis": {
-      "grammar_score": 85,
-      "pronunciation_score": 78,
-      "vocabulary_level": "intermediate",
-      "errors": [
+      "grammar_score": 90,
+      "pronunciation_score": 75,
+      "vocabulary_level": "beginner",
+      "mistakes": [
         {
           "type": "pronunciation",
-          "word": "végétariens",
-          "suggestion": "Focus on the 'é' sound - it should be more closed",
-          "audio_example": "https://cdn.linguaai.com/pronunciation/vegetariens.mp3"
+          "word": "cerveza",
+          "issue": "The 'z' should sound like 'th' in Spain",
+          "suggestion": "Try 'ther-VEH-tha' instead of 'ser-VEH-za'",
+          "audio_example": "https://cdn.linguaai.com/pronunciation/cerveza_spain.mp3"
         }
       ],
-      "improvements": [
-        "Great use of polite greeting!",
-        "Correct question formation with 'est-ce que'"
+      "good_usage": [
+        "Perfect use of 'por favor' for politeness!",
+        "Good subject-verb structure"
       ]
     }
   },
   "ai_response": {
-    "text": "Absolument ! Nous avons plusieurs options végétariennes délicieuses. Je recommande particulièrement notre ratatouille maison et notre salade de chèvre chaud. Aimeriez-vous que je vous explique ces plats ?",
-    "translation": "Absolutely! We have several delicious vegetarian options. I particularly recommend our homemade ratatouille and our warm goat cheese salad. Would you like me to explain these dishes?",
-    "audio_url": "https://cdn.linguaai.com/audio/conv_789012_msg_002.mp3"
+    "text": "¡Perfecto! Tenemos Estrella Galicia, que es muy popular aquí. ¿Le gustaría también algo de comer? Nuestras patatas bravas están muy buenas.",
+    "translation": "Perfect! We have Estrella Galicia, which is very popular here. Would you also like something to eat? Our patatas bravas are very good.",
+    "audio_url": "https://cdn.linguaai.com/audio/conv_789012_msg_002.mp3",
+    "vocabulary_help": {
+      "new_words": ["popular", "patatas bravas"],
+      "grammar_pattern": "¿Le gustaría...? (Would you like...? - formal)"
+    }
   },
-  "learning_insights": {
-    "new_vocabulary": ["absolument", "ratatouille", "chèvre"],
-    "grammar_patterns": ["conditional mood: aimeriez-vous"],
-    "cultural_notes": ["French servers often make personal recommendations"]
+  "conversation_metadata": {
+    "turns_completed": 2,
+    "estimated_level": "beginner",
+    "confidence_trend": "increasing",
+    "next_suggested_topics": ["describing food preferences", "asking about prices"]
   }
 }
 ```
 
+**A note on the pronunciation scoring:** I spent weeks trying to get this right. It's not perfect - pronunciation is really hard to assess objectively. But it's way better than nothing, and users seem to find it helpful. If you find bugs in the scoring, please let me know!
+
 #### Get Conversation History
 ```http
 GET /conversations/{conversation_id}/messages
-Authorization: Bearer {access_token}
+Authorization: Bearer {token}
+?limit=50&offset=0
 ```
 
 **Response:**
 ```json
 {
   "conversation_id": "conv_789012",
+  "total_messages": 24,
   "messages": [
     {
       "id": "msg_001",
       "timestamp": "2024-03-15T15:00:00Z",
       "sender": "ai",
-      "content": "Bonsoir ! Bienvenue dans notre bistro...",
-      "translation": "Good evening! Welcome to our bistro..."
-    },
-    {
-      "id": "msg_002", 
-      "timestamp": "2024-03-15T15:02:00Z",
-      "sender": "user",
-      "content": "Bonjour Marie ! Oui, j'ai regardé le menu...",
-      "analysis": {
-        "grammar_score": 85,
-        "pronunciation_score": 78
-      }
+      "content": "¡Hola! Bienvenido a nuestro restaurante...",
+      "translation": "Hello! Welcome to our restaurant..."
     }
   ],
-  "summary": {
-    "total_messages": 12,
+  "conversation_summary": {
     "duration_minutes": 18,
-    "avg_grammar_score": 82,
-    "avg_pronunciation_score": 79,
-    "topics_covered": ["greetings", "food_ordering", "dietary_preferences"]
+    "topics_covered": ["greetings", "ordering_drinks", "food_preferences"],
+    "average_grammar_score": 82,
+    "average_pronunciation_score": 76,
+    "vocabulary_introduced": 12,
+    "confidence_progression": "steady_improvement"
   }
 }
 ```
 
-#### End Conversation
-```http
-POST /conversations/{conversation_id}/end
-Authorization: Bearer {access_token}
-Content-Type: application/json
-
-{
-  "feedback": {
-    "difficulty_rating": 4,
-    "enjoyment_rating": 5,
-    "comments": "Great conversation! The server was very patient and helpful."
-  }
-}
-```
-
-**Response:**
-```json
-{
-  "id": "conv_789012",
-  "status": "completed",
-  "ended_at": "2024-03-15T15:25:00Z",
-  "summary": {
-    "duration_minutes": 25,
-    "total_messages": 16,
-    "xp_earned": 180,
-    "performance": {
-      "grammar_score": 82,
-      "pronunciation_score": 79,
-      "vocabulary_growth": 8,
-      "confidence_improvement": 12
-    },
-    "achievements": [
-      "first_restaurant_conversation",
-      "perfect_pronunciation_streak_5"
-    ]
-  },
-  "next_recommendations": [
-    "Try a more complex restaurant scenario",
-    "Practice food vocabulary in a grocery store setting",
-    "Work on pronunciation of nasal vowels"
-  ]
-}
-```
-
-### Progress & Analytics
+### User Progress & Analytics
 
 #### Get Learning Progress
+This endpoint returns detailed analytics about how the user is improving. I'm pretty proud of this - it took me forever to figure out how to measure "conversation confidence" in a meaningful way.
+
 ```http
 GET /users/me/progress
-Authorization: Bearer {access_token}
-?period=week&language=french
+Authorization: Bearer {token}
+?period=week&language=spanish&skill_focus=conversation
 ```
 
 **Response:**
 ```json
 {
   "user_id": "user_123456",
-  "language": "french",
+  "language": "spanish",
   "period": "week",
-  "start_date": "2024-03-08T00:00:00Z",
-  "end_date": "2024-03-15T23:59:59Z",
+  "date_range": {
+    "start": "2024-03-08T00:00:00Z",
+    "end": "2024-03-15T23:59:59Z"
+  },
   "overall_stats": {
-    "conversations_completed": 7,
-    "total_time_minutes": 210,
-    "xp_earned": 840,
-    "streak_days": 6,
-    "proficiency_improvement": 8.5
+    "conversations_completed": 6,
+    "total_time_minutes": 178,
+    "average_session_length": 29.7,
+    "streak_days": 5,
+    "confidence_improvement": "+23%"
   },
   "skill_breakdown": {
     "grammar": {
-      "current_score": 82,
-      "improvement": 6,
-      "weak_areas": ["subjunctive_mood", "gender_agreement"],
-      "strong_areas": ["present_tense", "question_formation"]
+      "current_score": 78,
+      "week_improvement": "+8",
+      "strong_areas": ["present_tense", "basic_questions"],
+      "improvement_areas": ["past_tense", "gender_agreement"],
+      "recent_mistakes": [
+        "la problema → el problema (gender agreement)",
+        "yo fui → yo fue (irregular past tense)"
+      ]
     },
     "pronunciation": {
-      "current_score": 79,
-      "improvement": 4,
-      "weak_areas": ["nasal_vowels", "r_sound"],
-      "strong_areas": ["basic_vowels", "consonants"]
+      "current_score": 72,
+      "week_improvement": "+5",
+      "strong_sounds": ["vowels", "simple_consonants"],
+      "challenging_sounds": ["rr_roll", "spanish_r"],
+      "pronunciation_tips": [
+        "Keep practicing the rolled R - it's getting better!",
+        "Your vowel sounds are excellent"
+      ]
     },
     "vocabulary": {
-      "words_learned": 23,
-      "words_reviewed": 45,
-      "retention_rate": 87,
-      "categories": {
-        "food": 12,
-        "business": 8,
-        "travel": 3
+      "words_learned": 34,
+      "words_retained": 29,
+      "retention_rate": 85,
+      "categories_practiced": {
+        "food_dining": 12,
+        "greetings_social": 8,
+        "shopping": 4
       }
     },
-    "fluency": {
-      "conversation_confidence": 72,
-      "response_time_improvement": 15,
-      "complexity_level": "intermediate_low"
+    "conversation_skills": {
+      "confidence_score": 68,
+      "longest_conversation": "12 minutes",
+      "topics_comfortable_with": ["ordering_food", "basic_introductions"],
+      "next_challenges": ["phone_conversations", "giving_directions"]
     }
   },
-  "daily_breakdown": [
+  "weekly_progression": [
     {
       "date": "2024-03-08",
+      "minutes_practiced": 25,
       "conversations": 1,
-      "minutes": 32,
-      "xp": 120,
-      "grammar_score": 75,
-      "pronunciation_score": 73
-    },
-    {
-      "date": "2024-03-09",
-      "conversations": 2,
-      "minutes": 45,
-      "xp": 180,
-      "grammar_score": 78,
-      "pronunciation_score": 76
-    }
-  ]
-}
-```
-
-#### Get Achievement Data
-```http
-GET /users/me/achievements
-Authorization: Bearer {access_token}
-```
-
-**Response:**
-```json
-{
-  "user_id": "user_123456",
-  "total_achievements": 23,
-  "total_xp_from_achievements": 2300,
-  "achievements": [
-    {
-      "id": "first_conversation",
-      "name": "Breaking the Ice",
-      "description": "Complete your first AI conversation",
-      "icon": "🎉",
-      "xp_reward": 50,
-      "earned_at": "2024-01-15T10:45:00Z",
-      "category": "milestone"
-    },
-    {
-      "id": "week_streak_1",
-      "name": "Week Warrior",
-      "description": "Maintain a 7-day learning streak",
-      "icon": "🔥",
-      "xp_reward": 100,
-      "earned_at": "2024-01-22T09:30:00Z",
-      "category": "consistency"
-    },
-    {
-      "id": "pronunciation_perfect_10",
-      "name": "Pronunciation Pro",
-      "description": "Get perfect pronunciation scores 10 times",
-      "icon": "🎯",
-      "xp_reward": 200,
-      "earned_at": "2024-02-10T16:20:00Z",
-      "category": "skill"
-    }
-  ],
-  "available_achievements": [
-    {
-      "id": "restaurant_master",
-      "name": "Restaurant Master",
-      "description": "Complete 5 restaurant conversations",
-      "icon": "🍽️",
-      "xp_reward": 150,
-      "progress": {
-        "current": 3,
-        "required": 5
-      },
-      "category": "topic"
+      "grammar_score": 70,
+      "pronunciation_score": 67,
+      "new_vocabulary": 6
     }
   ]
 }
@@ -457,456 +294,99 @@ Authorization: Bearer {access_token}
 
 ### Voice Features
 
-#### Upload Audio for Analysis
+#### Analyze Pronunciation
+This is the endpoint I'm most excited about. Upload audio and get detailed pronunciation feedback.
+
 ```http
 POST /voice/analyze
-Authorization: Bearer {access_token}
+Authorization: Bearer {token}
 Content-Type: multipart/form-data
 
 audio: [audio_file.wav]
-text: "Bonjour, comment allez-vous?"
-language: "french"
+text: "Hola, ¿cómo está usted?"
+language: "spanish"
+difficulty_level: "beginner"
 ```
 
 **Response:**
 ```json
 {
   "analysis_id": "voice_456789",
-  "text": "Bonjour, comment allez-vous?",
-  "language": "french",
-  "overall_score": 78,
-  "detailed_analysis": {
+  "text": "Hola, ¿cómo está usted?",
+  "language": "spanish",
+  "overall_score": 74,
+  "detailed_feedback": {
     "pronunciation": {
-      "score": 78,
-      "phonemes": [
+      "score": 74,
+      "word_by_word": [
         {
-          "phoneme": "b",
-          "word": "bonjour",
+          "word": "hola",
           "score": 95,
-          "feedback": "Excellent pronunciation"
+          "phonemes": [
+            { "sound": "o", "accuracy": 98, "feedback": "Perfect!" },
+            { "sound": "l", "accuracy": 92, "feedback": "Good clear L sound" }
+          ]
         },
         {
-          "phoneme": "ʒ",
-          "word": "bonjour",
+          "word": "cómo",
           "score": 65,
-          "feedback": "Try to make the 'j' sound softer",
-          "audio_example": "https://cdn.linguaai.com/pronunciation/j_sound_fr.mp3"
+          "phonemes": [
+            { "sound": "o", "accuracy": 88, "feedback": "Good" },
+            { "sound": "m", "accuracy": 42, "feedback": "Try making this more nasal" }
+          ]
         }
       ]
     },
     "fluency": {
-      "score": 82,
-      "pace": "appropriate",
-      "pauses": 2,
-      "filler_words": 0,
-      "feedback": "Good natural pace with appropriate pauses"
+      "score": 78,
+      "pace": "good",
+      "pauses": {
+        "count": 2,
+        "average_length": "0.8s",
+        "feedback": "Natural pause timing"
+      },
+      "rhythm": "slightly_choppy",
+      "suggestions": [
+        "Try to connect words more smoothly",
+        "The pace is good - don't rush"
+      ]
     },
     "intonation": {
-      "score": 74,
-      "pattern": "questioning",
-      "accuracy": 74,
-      "feedback": "Rising intonation appropriate for question, but could be more pronounced"
+      "score": 70,
+      "pattern": "question_rising",
+      "accuracy": "mostly_correct",
+      "feedback": "Good question intonation, but could rise more at the end"
     }
   },
-  "improvements": [
-    "Focus on the 'j' sound in 'bonjour' - it should be softer",
-    "Try to make your question intonation slightly more pronounced",
-    "Overall excellent pronunciation! Keep practicing"
+  "next_steps": [
+    "Practice the 'ó' sound in 'cómo' - it should be more open",
+    "Work on connecting words smoothly",
+    "Great job with the question intonation!"
   ],
-  "next_exercises": [
-    "Practice words with the 'j' sound",
-    "Work on question intonation patterns"
-  ]
-}
-```
-
-#### Get Pronunciation Practice Exercises
-```http
-GET /voice/exercises
-Authorization: Bearer {access_token}
-?language=french&difficulty=intermediate&focus=pronunciation
-```
-
-**Response:**
-```json
-{
-  "exercises": [
-    {
-      "id": "exercise_001",
-      "type": "word_repetition",
-      "title": "French R Sound Practice",
-      "difficulty": "intermediate",
-      "words": [
-        {
-          "text": "rouge",
-          "phonetic": "/ʁuʒ/",
-          "audio_url": "https://cdn.linguaai.com/exercises/rouge.mp3",
-          "tips": "The French R is pronounced at the back of the throat"
-        },
-        {
-          "text": "partir",
-          "phonetic": "/paʁtiʁ/",
-          "audio_url": "https://cdn.linguaai.com/exercises/partir.mp3",
-          "tips": "Notice the R sound appears twice in this word"
-        }
-      ]
-    },
-    {
-      "id": "exercise_002",
-      "type": "sentence_practice",
-      "title": "Question Intonation",
-      "sentences": [
-        {
-          "text": "Comment vous appelez-vous ?",
-          "audio_url": "https://cdn.linguaai.com/exercises/comment_vous_appelez.mp3",
-          "intonation_pattern": "rising",
-          "tips": "Voice should rise at the end for questions"
-        }
-      ]
-    }
-  ]
-}
-```
-
-### Leaderboards & Social
-
-#### Get Leaderboard
-```http
-GET /leaderboards
-Authorization: Bearer {access_token}
-?type=weekly&language=french&limit=50
-```
-
-**Response:**
-```json
-{
-  "leaderboard_type": "weekly",
-  "language": "french",
-  "period": "2024-03-08 to 2024-03-15",
-  "user_rank": 12,
-  "total_participants": 156,
-  "leaders": [
-    {
-      "rank": 1,
-      "user": {
-        "id": "user_999888",
-        "name": "Alex M.",
-        "avatar_url": "https://cdn.linguaai.com/avatars/user_999888.jpg",
-        "level": 15
-      },
-      "xp": 2840,
-      "conversations": 18,
-      "streak": 12
-    },
-    {
-      "rank": 2,
-      "user": {
-        "id": "user_777666",
-        "name": "Sarah K.",
-        "avatar_url": "https://cdn.linguaai.com/avatars/user_777666.jpg",
-        "level": 13
-      },
-      "xp": 2650,
-      "conversations": 15,
-      "streak": 9
-    }
-  ],
-  "user_stats": {
-    "rank": 12,
-    "xp": 1890,
-    "conversations": 11,
-    "streak": 6,
-    "xp_to_next_rank": 150
+  "similar_words_to_practice": ["como", "dónde", "cuándo"],
+  "audio_examples": {
+    "target_pronunciation": "https://cdn.linguaai.com/pronunciation/como_esta_usted.mp3",
+    "user_pronunciation": "https://cdn.linguaai.com/user_audio/voice_456789.mp3"
   }
 }
 ```
 
-### Content & Scenarios
+**Technical note:** The pronunciation analysis uses a combination of the Web Speech API and some custom algorithms I built. It's not as accurate as professional speech therapy software, but it's good enough to help learners improve. I'm constantly tweaking the scoring algorithm based on user feedback.
 
-#### Get Available Conversation Topics
-```http
-GET /content/topics
-Authorization: Bearer {access_token}
-?language=french&level=intermediate
-```
+## Error Handling
 
-**Response:**
-```json
-{
-  "language": "french",
-  "level": "intermediate",
-  "categories": [
-    {
-      "id": "travel",
-      "name": "Travel & Tourism",
-      "icon": "✈️",
-      "topics": [
-        {
-          "id": "airport_checkin",
-          "name": "Airport Check-in",
-          "difficulty": "intermediate",
-          "duration_minutes": 15,
-          "description": "Practice checking in for a flight and handling travel documents"
-        },
-        {
-          "id": "hotel_reservation",
-          "name": "Hotel Reservation",
-          "difficulty": "intermediate",
-          "duration_minutes": 20,
-          "description": "Make and modify hotel reservations, discuss amenities"
-        }
-      ]
-    },
-    {
-      "id": "business",
-      "name": "Professional Communication",
-      "icon": "💼",
-      "topics": [
-        {
-          "id": "job_interview",
-          "name": "Job Interview",
-          "difficulty": "advanced",
-          "duration_minutes": 30,
-          "description": "Practice answering common interview questions professionally"
-        }
-      ]
-    }
-  ]
-}
-```
+I tried to make error messages actually helpful instead of just returning generic HTTP codes.
 
-## SDKs & Libraries
-
-### JavaScript/TypeScript SDK
-
-Install the official LinguaAI SDK:
-
-```bash
-npm install @linguaai/sdk
-```
-
-**Basic Usage:**
-```typescript
-import { LinguaAI } from '@linguaai/sdk';
-
-const client = new LinguaAI({
-  apiKey: 'your_api_key',
-  baseUrl: 'https://api.linguaai.com/v1'
-});
-
-// Start a conversation
-const conversation = await client.conversations.create({
-  topic: 'restaurant_ordering',
-  language: 'french',
-  difficulty: 'intermediate'
-});
-
-// Send a message
-const response = await client.conversations.sendMessage(conversation.id, {
-  type: 'text',
-  content: 'Bonjour, je voudrais une table pour deux.'
-});
-
-console.log(response.ai_response.text);
-console.log(response.user_message.analysis);
-```
-
-**Real-time Conversation Example:**
-```typescript
-import { LinguaAI } from '@linguaai/sdk';
-
-const client = new LinguaAI({ apiKey: 'your_api_key' });
-
-// Create conversation with WebSocket support
-const conversation = await client.conversations.createRealtime({
-  topic: 'coffee_shop',
-  language: 'spanish'
-});
-
-// Listen for AI responses
-conversation.on('message', (message) => {
-  console.log('AI:', message.text);
-  playAudio(message.audio_url);
-});
-
-// Send voice message
-const audioBlob = await recordAudio();
-await conversation.sendVoiceMessage(audioBlob);
-```
-
-### Python SDK
-
-Install the Python SDK:
-
-```bash
-pip install linguaai-python
-```
-
-**Basic Usage:**
-```python
-from linguaai import LinguaAI
-
-client = LinguaAI(api_key='your_api_key')
-
-# Start conversation
-conversation = client.conversations.create(
-    topic='business_meeting',
-    language='german',
-    difficulty='advanced'
-)
-
-# Send message and get analysis
-response = client.conversations.send_message(
-    conversation.id,
-    content='Guten Tag, freut mich Sie kennenzulernen.'
-)
-
-print(f"AI Response: {response.ai_response.text}")
-print(f"Grammar Score: {response.user_message.analysis.grammar_score}")
-```
-
-### React Hooks
-
-For React applications, use our hooks library:
-
-```bash
-npm install @linguaai/react-hooks
-```
-
-```tsx
-import { useConversation, useLearningProgress } from '@linguaai/react-hooks';
-
-function ConversationComponent() {
-  const { 
-    conversation,
-    sendMessage,
-    isLoading,
-    error 
-  } = useConversation({
-    topic: 'restaurant',
-    language: 'french'
-  });
-
-  const { progress } = useLearningProgress();
-
-  const handleSendMessage = async (text: string) => {
-    const response = await sendMessage(text);
-    // Handle response
-  };
-
-  return (
-    <div>
-      <div>Current XP: {progress?.xp_total}</div>
-      {conversation?.messages.map(msg => (
-        <div key={msg.id}>{msg.content}</div>
-      ))}
-    </div>
-  );
-}
-```
-
-## Webhooks
-
-Configure webhooks to receive real-time notifications about user events and learning progress.
-
-### Setting Up Webhooks
-
-1. Go to your dashboard Settings > Webhooks
-2. Add your endpoint URL
-3. Select events you want to receive
-4. Save your webhook secret for verification
-
-### Webhook Events
-
-#### User Progress Update
-Triggered when a user completes a conversation or achieves a milestone.
-
-```json
-{
-  "event": "user.progress.updated",
-  "timestamp": "2024-03-15T15:30:00Z",
-  "data": {
-    "user_id": "user_123456",
-    "conversation_id": "conv_789012",
-    "progress_change": {
-      "xp_gained": 180,
-      "grammar_improvement": 3,
-      "pronunciation_improvement": 2,
-      "new_achievements": ["restaurant_novice"]
-    }
-  }
-}
-```
-
-#### Conversation Completed
-```json
-{
-  "event": "conversation.completed",
-  "timestamp": "2024-03-15T15:25:00Z",
-  "data": {
-    "conversation_id": "conv_789012",
-    "user_id": "user_123456",
-    "topic": "restaurant_ordering",
-    "language": "french",
-    "duration_minutes": 25,
-    "performance": {
-      "grammar_score": 82,
-      "pronunciation_score": 79,
-      "xp_earned": 180
-    }
-  }
-}
-```
-
-### Webhook Verification
-
-Verify webhook authenticity using the signature header:
-
-```python
-import hmac
-import hashlib
-
-def verify_webhook(payload, signature, secret):
-    expected = hmac.new(
-        secret.encode(),
-        payload.encode(),
-        hashlib.sha256
-    ).hexdigest()
-    
-    return hmac.compare_digest(signature, f"sha256={expected}")
-```
-
-## Rate Limits & Error Handling
-
-### Rate Limits
-
-| Endpoint Category | Rate Limit | Burst Limit |
-|------------------|------------|-------------|
-| **Authentication** | 10/minute | 20/minute |
-| **Conversations** | 60/hour | 10/minute |
-| **Voice Analysis** | 30/hour | 5/minute |
-| **Progress Data** | 100/hour | 20/minute |
-| **General API** | 1000/hour | 50/minute |
-
-Rate limit headers are included in all responses:
-```http
-X-RateLimit-Limit: 1000
-X-RateLimit-Remaining: 987
-X-RateLimit-Reset: 1647360000
-```
-
-### Error Responses
-
-All errors follow a consistent format:
-
+### Error Response Format
 ```json
 {
   "error": {
-    "code": "INVALID_LANGUAGE",
-    "message": "The specified language 'klingon' is not supported",
+    "code": "CONVERSATION_EXPIRED",
+    "message": "This conversation has been inactive for more than 24 hours",
     "details": {
-      "supported_languages": ["english", "spanish", "french", "german", "italian"],
-      "provided_language": "klingon"
+      "conversation_id": "conv_789012",
+      "expired_at": "2024-03-14T15:00:00Z",
+      "suggestion": "Start a new conversation to continue practicing"
     },
     "request_id": "req_abc123def456"
   }
@@ -915,20 +395,17 @@ All errors follow a consistent format:
 
 ### Common Error Codes
 
-| Code | HTTP Status | Description |
-|------|-------------|-------------|
-| `UNAUTHORIZED` | 401 | Invalid or missing API key |
-| `FORBIDDEN` | 403 | Insufficient permissions |
-| `NOT_FOUND` | 404 | Resource not found |
-| `RATE_LIMITED` | 429 | Rate limit exceeded |
-| `INVALID_LANGUAGE` | 400 | Unsupported language |
-| `INVALID_AUDIO` | 400 | Audio format not supported |
-| `CONVERSATION_EXPIRED` | 410 | Conversation session expired |
-| `INTERNAL_ERROR` | 500 | Server error |
+| Code | HTTP Status | What It Means | What To Do |
+|------|-------------|---------------|------------|
+| `INVALID_LANGUAGE` | 400 | You specified a language I don't support yet | Check the supported languages list |
+| `AI_SERVICE_BUSY` | 503 | OpenAI is having issues (happens more than I'd like) | Try again in a few seconds |
+| `AUDIO_TOO_LONG` | 400 | Audio clip is longer than 60 seconds | Break it into smaller chunks |
+| `RATE_LIMITED` | 429 | You're making requests too fast | Wait a bit, then try again |
+| `CONVERSATION_EXPIRED` | 410 | Conversation is too old to continue | Start a new conversation |
 
-### Retry Logic
+### Retry Logic Example
 
-Implement exponential backoff for rate-limited requests:
+OpenAI's API can be flaky, so here's the retry logic I use in my own client:
 
 ```javascript
 async function apiCallWithRetry(apiCall, maxRetries = 3) {
@@ -938,7 +415,13 @@ async function apiCallWithRetry(apiCall, maxRetries = 3) {
     } catch (error) {
       if (error.status === 429 && i < maxRetries - 1) {
         const delay = Math.pow(2, i) * 1000; // Exponential backoff
+        console.log(`Rate limited, waiting ${delay}ms before retry ${i + 1}`);
         await new Promise(resolve => setTimeout(resolve, delay));
+        continue;
+      }
+      if (error.status >= 500 && i < maxRetries - 1) {
+        console.log(`Server error, retrying in ${1000 * (i + 1)}ms`);
+        await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
         continue;
       }
       throw error;
@@ -947,145 +430,233 @@ async function apiCallWithRetry(apiCall, maxRetries = 3) {
 }
 ```
 
-## Integration Examples
+## SDK Examples
 
-### Learning Management System (LMS) Integration
+### JavaScript/Node.js
 
-```python
-# Example: Integrating LinguaAI with a university LMS
-from linguaai import LinguaAI
-import lms_connector
+I built a simple JavaScript wrapper that handles authentication and retries:
 
-class LanguageCourseIntegration:
-    def __init__(self, api_key, course_id):
-        self.client = LinguaAI(api_key=api_key)
-        self.course_id = course_id
-    
-    def assign_conversation_homework(self, student_ids, topic, due_date):
-        """Assign conversation practice to students"""
-        for student_id in student_ids:
-            # Create conversation assignment
-            conversation = self.client.conversations.create(
-                topic=topic,
-                custom_context={
-                    'assignment_id': f'hw_{course_id}_{topic}',
-                    'due_date': due_date,
-                    'student_id': student_id
-                }
-            )
-            
-            # Record assignment in LMS
-            lms_connector.create_assignment(
-                course_id=self.course_id,
-                student_id=student_id,
-                assignment_type='conversation_practice',
-                conversation_id=conversation.id,
-                due_date=due_date
-            )
-    
-    def get_class_progress(self):
-        """Get progress report for entire class"""
-        students = lms_connector.get_course_students(self.course_id)
-        progress_report = []
-        
-        for student in students:
-            progress = self.client.users.get_progress(
-                user_id=student.linguaai_id,
-                period='week'
-            )
-            progress_report.append({
-                'student_name': student.name,
-                'conversations_completed': progress.conversations_completed,
-                'average_score': progress.overall_stats.proficiency_improvement,
-                'areas_for_improvement': progress.skill_breakdown.weak_areas
-            })
-        
-        return progress_report
+```bash
+npm install linguaai-sdk
 ```
 
-### Corporate Training Platform
+```javascript
+const LinguaAI = require('linguaai-sdk');
 
-```typescript
-// Example: Corporate language training dashboard
-import { LinguaAI } from '@linguaai/sdk';
+const client = new LinguaAI({
+  apiKey: 'your_api_key_here',
+  // baseUrl: 'http://localhost:3000/api' // for local development
+});
 
-class CorporateTrainingDashboard {
-  private client: LinguaAI;
-  
-  constructor(apiKey: string) {
-    this.client = new LinguaAI({ apiKey });
-  }
-  
-  async createTeamChallenge(teamMembers: string[], scenario: string) {
-    const challenge = {
-      id: `challenge_${Date.now()}`,
-      scenario,
-      participants: [],
-      startDate: new Date(),
-      endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 1 week
-    };
-    
-    for (const memberId of teamMembers) {
-      const conversation = await this.client.conversations.create({
-        topic: scenario,
-        language: 'spanish', // For global team
-        difficulty: 'business_intermediate',
-        custom_context: {
-          challenge_id: challenge.id,
-          team_member: memberId
-        }
-      });
-      
-      challenge.participants.push({
-        memberId,
-        conversationId: conversation.id,
-        status: 'assigned'
-      });
-    }
-    
-    return challenge;
-  }
-  
-  async getTeamLeaderboard(teamId: string) {
-    const leaderboard = await this.client.leaderboards.get({
-      type: 'team',
-      team_id: teamId,
-      period: 'month'
+// Start a conversation
+async function startPracticeSession() {
+  try {
+    const conversation = await client.conversations.create({
+      topic: 'coffee_shop',
+      language: 'spanish',
+      difficulty: 'beginner'
     });
     
-    return leaderboard.leaders.map(leader => ({
-      name: leader.user.name,
-      conversationsCompleted: leader.conversations,
-      averageScore: leader.avg_performance_score,
-      businessScenariosMastered: leader.business_scenarios_completed
-    }));
+    console.log(`Started conversation: ${conversation.id}`);
+    console.log(`AI says: ${conversation.opening_message.text}`);
+    
+    // Send a message
+    const response = await client.conversations.sendMessage(conversation.id, {
+      content: 'Hola, quiero un café con leche, por favor'
+    });
+    
+    console.log(`AI replied: ${response.ai_response.text}`);
+    console.log(`Grammar score: ${response.user_message.analysis.grammar_score}`);
+    
+  } catch (error) {
+    console.error('Error:', error.message);
+  }
+}
+
+startPracticeSession();
+```
+
+### React Hook Example
+
+For React apps, I made a custom hook that handles the conversation state:
+
+```jsx
+import { useConversation } from 'linguaai-sdk/react';
+
+function ConversationApp() {
+  const { 
+    conversation, 
+    messages, 
+    sendMessage, 
+    isLoading, 
+    error 
+  } = useConversation({
+    topic: 'restaurant',
+    language: 'spanish',
+    difficulty: 'intermediate'
+  });
+
+  const handleSendMessage = async (text) => {
+    try {
+      await sendMessage(text);
+    } catch (err) {
+      console.error('Failed to send message:', err);
+    }
+  };
+
+  if (error) {
+    return <div>Error: {error.message}</div>;
+  }
+
+  return (
+    <div>
+      <div className="messages">
+        {messages.map(msg => (
+          <div key={msg.id} className={`message ${msg.sender}`}>
+            <p>{msg.content}</p>
+            {msg.analysis && (
+              <small>Grammar: {msg.analysis.grammar_score}%</small>
+            )}
+          </div>
+        ))}
+      </div>
+      
+      <MessageInput 
+        onSend={handleSendMessage} 
+        disabled={isLoading}
+      />
+    </div>
+  );
+}
+```
+
+## Webhooks (Beta)
+
+I added webhooks so you can get notified when users make progress. This is still pretty experimental.
+
+### Setting Up Webhooks
+
+1. Go to your dashboard at `/dashboard/webhooks`
+2. Add your endpoint URL (must be HTTPS)
+3. Select which events you want to receive
+4. Save your webhook secret for verification
+
+### Available Events
+
+```javascript
+// User completed a conversation
+{
+  "event": "conversation.completed",
+  "timestamp": "2024-03-15T15:25:00Z",
+  "data": {
+    "user_id": "user_123456",
+    "conversation_id": "conv_789012",
+    "duration_minutes": 15,
+    "messages_exchanged": 12,
+    "final_scores": {
+      "grammar": 84,
+      "pronunciation": 78,
+      "confidence": 72
+    },
+    "achievements_unlocked": ["first_restaurant_conversation"]
+  }
+}
+
+// User made significant progress
+{
+  "event": "user.milestone_reached",
+  "timestamp": "2024-03-15T16:00:00Z",
+  "data": {
+    "user_id": "user_123456",
+    "milestone": "conversation_confidence_threshold",
+    "details": {
+      "confidence_score": 75,
+      "improvement_this_week": 15,
+      "conversations_completed": 10
+    }
   }
 }
 ```
 
-## Best Practices
+### Webhook Verification
 
-### Performance Optimization
+```python
+import hmac
+import hashlib
 
-1. **Conversation Caching**: Cache conversation context locally to reduce API calls
-2. **Audio Compression**: Compress audio files before uploading for faster analysis
-3. **Batch Requests**: Use batch endpoints for multiple user operations
-4. **Connection Pooling**: Reuse HTTP connections for better performance
+def verify_webhook_signature(payload, signature, secret):
+    """Verify that the webhook actually came from LinguaAI"""
+    expected = hmac.new(
+        secret.encode('utf-8'),
+        payload.encode('utf-8'),
+        hashlib.sha256
+    ).hexdigest()
+    
+    return hmac.compare_digest(signature, f"sha256={expected}")
 
-### Security Considerations
+# Example Flask handler
+@app.route('/webhooks/linguaai', methods=['POST'])
+def handle_webhook():
+    signature = request.headers.get('X-LinguaAI-Signature')
+    payload = request.data.decode('utf-8')
+    
+    if not verify_webhook_signature(payload, signature, WEBHOOK_SECRET):
+        return 'Invalid signature', 403
+    
+    event_data = json.loads(payload)
+    
+    if event_data['event'] == 'conversation.completed':
+        # Update your user's progress tracking
+        update_user_progress(event_data['data'])
+    
+    return 'OK', 200
+```
 
-1. **API Key Management**: Store API keys securely, rotate regularly
-2. **User Data Protection**: Never store sensitive user audio on your servers
-3. **HTTPS Only**: All API calls must use HTTPS
-4. **Token Expiration**: Handle token refresh gracefully
+## Rate Limits & Fair Usage
 
-### User Experience Guidelines
+Since this is a student project running on a limited budget, I have to be reasonable about rate limits:
 
-1. **Progressive Loading**: Show conversation interface while loading AI response
-2. **Offline Graceful Degradation**: Cache recent conversations for offline review
-3. **Error User Feedback**: Provide clear, actionable error messages to users
-4. **Performance Feedback**: Show audio analysis results immediately after recording
+| Endpoint Category | Free Tier | Premium | Notes |
+|------------------|-----------|---------|-------|
+| **Conversations** | 50/day | 500/day | Main bottleneck is OpenAI costs |
+| **Voice Analysis** | 20/day | 200/day | Processing-intensive |
+| **Progress API** | 1000/day | 10000/day | Lightweight queries |
+| **Authentication** | 100/hour | 1000/hour | Prevent brute force |
+
+**Fair usage policy:** I built this to help people learn languages, not to be abused by bots. If you're building something cool, just email me and we can figure out higher limits.
+
+## Known Issues & Limitations
+
+Being honest about what doesn't work perfectly yet:
+
+1. **Voice recognition accuracy varies by accent** - Works best with American/British English speakers learning Spanish/French. I'm working on better accent handling.
+
+2. **AI sometimes gets confused in very long conversations** - After about 50 exchanges, context management gets tricky. I'm planning to implement better conversation summarization.
+
+3. **Limited language support** - Currently only Spanish and French are well-supported. German is coming next.
+
+4. **Pronunciation scoring is subjective** - What I consider "good" pronunciation might differ from a native speaker's opinion. Take the scores as guidance, not gospel.
+
+5. **No offline mode yet** - Everything requires internet connection. Working on caching for basic functionality.
+
+## Feedback & Support
+
+This is my first real API, so I'm sure there are rough edges. If you:
+- Find bugs or confusing behavior
+- Have ideas for improvements
+- Want to integrate this into something cool
+- Just want to chat about language learning tech
+
+Please reach out! You can:
+- Open an issue on GitHub
+- [Email](priscilla.chuhui.ong@gmail.com) me
+- Find me on Discord: @hiorhey
+
+I'm especially interested in hearing from:
+- Other students building language learning tools
+- Teachers who might want to use this with their classes
+- Native speakers who can help improve the pronunciation analysis
 
 ---
 
-*This API documentation is updated regularly. For the latest changes and announcements, subscribe to our developer newsletter or follow our changelog at https://api.linguaai.com/changelog*
+*Built with ❤️ and lots of ☕ by a college student who thinks language learning should be more fun. API documentation last updated: March 2024*
