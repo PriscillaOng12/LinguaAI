@@ -53,7 +53,6 @@ Progressive Web App that syncs across devices and caches conversations for offli
 The whole system is designed around keeping conversations flowing naturally. Everything from the database structure to the UI components prioritizes low-latency responses and smooth interactions.
 
 ### System Architecture
-
 ```mermaid
 graph TB
     subgraph "Client Layer"
@@ -97,10 +96,10 @@ graph TB
     J --> L
     I --> N
     
-    classDef client fill:#e1f5fe
-    classDef api fill:#fff3e0
-    classDef ai fill:#e8f5e8
-    classDef data fill:#fce4ec
+    classDef client fill:#f0f8ff,stroke:#1976d2,stroke-width:2px,color:#000
+    classDef api fill:#fff8e1,stroke:#f57c00,stroke-width:2px,color:#000
+    classDef ai fill:#f1f8e9,stroke:#388e3c,stroke-width:2px,color:#000
+    classDef data fill:#fce4ec,stroke:#c2185b,stroke-width:2px,color:#000
     
     class A,B,C,D client
     class E,F,G api
